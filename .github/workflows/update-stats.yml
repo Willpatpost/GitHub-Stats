@@ -20,3 +20,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install requests matplotlib Pillow
+
+      - name: Run the update script
+        env:
+          GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}  # Updated to use SECURING_TOKEN
+        run: |
+          python update_stats.py
