@@ -25,4 +25,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}  # Updated to use SECURING_TOKEN
         run: |
-          python update_stats.py
+          python update-stats.py
