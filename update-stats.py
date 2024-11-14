@@ -27,7 +27,7 @@ while True:
     if not repos:
         break
 
-    # Process each repository to count commits authored by you across all branches
+    # Process each repository to count all commits in all branches
     for repo in repos:
         repo_name = repo["name"]
         
@@ -36,7 +36,6 @@ while True:
         while True:
             commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits"
             params = {
-                "author": github_username,  # Only count commits authored by you
                 "page": commit_page,
                 "per_page": 100
             }
@@ -47,8 +46,8 @@ while True:
             if not commits:
                 break
             
-            # Add the number of commits in this page
-            total_commits += len(commits)
+            # Filter commits authored by your GitHub username
+            total_commits += sum(1 for commit in commits if commit["commit"]["author"]["name"] == github_username)
             commit_page += 1
 
     page += 1
