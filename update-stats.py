@@ -27,15 +27,22 @@ while True:
     if not repos:
         break
 
-    # Process each repository to count commits
+    # Process each repository to count commits in the default branch
     for repo in repos:
         repo_name = repo["name"]
+        default_branch = repo["default_branch"]
         
-        # Pagination for commits
+        # Pagination for commits in the default branch
         commit_page = 1
         while True:
-            commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits?page={commit_page}&per_page=100"
-            commits_response = requests.get(commits_url, headers=headers)
+            commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits"
+            params = {
+                "author": github_username,  # Only count commits authored by you
+                "sha": default_branch,  # Only the default branch
+                "page": commit_page,
+                "per_page": 100
+            }
+            commits_response = requests.get(commits_url, headers=headers, params=params)
             commits = commits_response.json()
             
             # If there are no more commits, break
