@@ -1,6 +1,9 @@
 name: Update GitHub Stats
 
 on:
+  push:
+    branches:
+      - main  # or replace with your default branch name
   schedule:
     - cron: '0 0 * * *'  # Runs daily at midnight (UTC)
 
