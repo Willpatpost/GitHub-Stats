@@ -87,7 +87,7 @@ def generate_image(stats, languages):
     # Set up image dimensions
     img = Image.new("RGB", (600, 300), color="white")
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("arial.ttf", 15)
+    font = ImageFont.load_default()  # Use built-in font
 
     # Add stats text
     draw.text((10, 10), f"Total Contributions: {stats['total_contributions']}", fill="black", font=font)
