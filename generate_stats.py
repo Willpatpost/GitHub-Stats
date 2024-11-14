@@ -64,9 +64,9 @@ def fetch_contributions():
 def fetch_languages():
     languages = {}
     page = 1
-    excluded_language = "GAML"  # Replace with the exact name if needed
+    excluded_language = "GAML"  # Adjust this to the exact name if different
 
-    # Retrieve language usage from all repositories
+    # Retrieve language usage across repositories
     while True:
         url = f"https://api.github.com/users/{github_username}/repos?page={page}&per_page=100"
         response = requests.get(url, headers=headers)
@@ -77,11 +77,11 @@ def fetch_languages():
             lang_url = repo["languages_url"]
             lang_data = requests.get(lang_url, headers=headers).json()
             for lang, bytes in lang_data.items():
-                if lang != excluded_language:  # Exclude specified language
+                if lang != excluded_language:  # Exclude the unwanted language
                     languages[lang] = languages.get(lang, 0) + bytes
         page += 1
 
-    # Recalculate percentages excluding the excluded language
+    # Calculate new percentages excluding the unwanted language
     total_bytes = sum(languages.values())
     top_languages = sorted(languages.items(), key=lambda x: x[1], reverse=True)[:5]
     top_languages = {lang: (bytes / total_bytes) * 100 for lang, bytes in top_languages}
@@ -90,22 +90,41 @@ def fetch_languages():
 
 # Generate stats image
 def generate_image(stats, languages):
-    # Set up image dimensions
-    img = Image.new("RGB", (600, 300), color="white")
+    # Set up image dimensions and background color
+    img_width, img_height = 600, 350
+    img = Image.new("RGB", (img_width, img_height), color="white")
     draw = ImageDraw.Draw(img)
-    font = ImageFont.load_default()  # Use built-in font
-
-    # Add stats text
-    draw.text((10, 10), f"Total Contributions: {stats['total_contributions']}", fill="black", font=font)
-    draw.text((10, 40), f"Current Streak: {stats['current_streak']} days", fill="black", font=font)
-    draw.text((10, 70), f"Longest Streak: {stats['longest_streak']} days", fill="black", font=font)
-
-    # Add language stats
-    y_offset = 100
+    
+    # Define fonts and colors
+    title_font = ImageFont.load_default()
+    stat_font = ImageFont.load_default()
+    language_font = ImageFont.load_default()
+    
+    # Define starting y position
+    y_position = 10
+    
+    # Add Title and Total Contributions
+    draw.text((10, y_position), "GitHub Stats", fill="black", font=title_font)
+    y_position += 30
+    draw.text((10, y_position), f"Total Contributions: {stats['total_contributions']}", fill="black", font=stat_font)
+    
+    # Add Current Streak and Longest Streak
+    y_position += 40
+    draw.text((10, y_position), f"Current Streak: {stats['current_streak']} days", fill="black", font=stat_font)
+    y_position += 30
+    draw.text((10, y_position), f"Longest Streak: {stats['longest_streak']} days", fill="black", font=stat_font)
+    
+    # Add Languages Section
+    y_position += 50
+    draw.text((10, y_position), "Top Languages Used:", fill="black", font=title_font)
+    y_position += 30
+    
+    # Display each language and percentage
     for lang, percent in languages.items():
-        draw.text((10, y_offset), f"{lang}: {percent:.2f}%", fill="black", font=font)
-        y_offset += 30
-
+        draw.text((10, y_position), f"{lang}: {percent:.2f}%", fill="black", font=language_font)
+        y_position += 20
+    
+    # Save the image
     img.save("stats_board.png")
 
 # Main function to fetch data and create the image
