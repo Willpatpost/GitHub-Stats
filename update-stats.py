@@ -1,15 +1,9 @@
 import requests
 import os
+import json
 
 # Your GitHub username
 github_username = "Willpatpost"
-
-# List of emails, including no-reply format
-user_emails = [
-    "willpatpost@gmail.com",
-    "wpost003@odu.edu",
-    f"{github_username}@users.noreply.github.com"  # GitHub no-reply format
-]
 
 # GitHub API base URL for user repositories
 base_url = f"https://api.github.com/users/{github_username}/repos"
@@ -46,7 +40,7 @@ while True:
             commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits"
             params = {
                 "page": commit_page,
-                "per_page": 100
+                "per_page": 1  # Get only one commit for debugging
             }
             commits_response = requests.get(commits_url, headers=headers, params=params)
             commits = commits_response.json()
@@ -56,17 +50,15 @@ while True:
                 print(f"No more commits found on page {commit_page} for repository {repo_name}.")
                 break
             
-            # Count commits where the author email matches one of your emails or no-reply email
-            count_for_page = sum(
-                1 for commit in commits 
-                if commit["commit"]["author"]["email"] in user_emails
-            )
-            total_commits += count_for_page
-            print(f"Commits by specified emails on this page: {count_for_page}")
-
+            # Debug: Print the JSON structure of the first commit
+            print(f"Commit JSON structure for repository {repo_name} on page {commit_page}:")
+            print(json.dumps(commits[0], indent=2))  # Pretty-print the first commit's JSON
+            
             commit_page += 1
+            break  # Exit after the first commit for now to limit output
 
     page += 1
+    break  # Exit after the first repository to limit output
 
-# Print the total commits (for testing in the Action logs)
-print(f"Total Commits: {total_commits}")
+# Print message to indicate completion of the test run
+print("Commit structure inspection complete.")
