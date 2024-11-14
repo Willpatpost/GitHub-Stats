@@ -2,7 +2,6 @@ import requests
 import os
 from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
 
 # Your GitHub username
 github_username = "Willpatpost"
