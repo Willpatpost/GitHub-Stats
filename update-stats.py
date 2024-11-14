@@ -4,23 +4,49 @@ import os
 # Your GitHub username
 github_username = "Willpatpost"
 
-# GitHub API URL to get a list of your repositories
-url = f"https://api.github.com/users/{github_username}/repos"
+# GitHub API base URL for user repositories
+base_url = f"https://api.github.com/users/{github_username}/repos"
 
-# Send the request with an authorization token (set in the GitHub Action)
+# Headers with the access token
 headers = {
     "Authorization": f"token {os.getenv('GITHUB_TOKEN')}"
 }
-response = requests.get(url, headers=headers)
-data = response.json()
 
-# Calculate total contributions by summing the commit count in each repository
+# Initialize total commits
 total_commits = 0
-for repo in data:
-    repo_name = repo["name"]
-    commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits"
-    commits_response = requests.get(commits_url, headers=headers)
-    total_commits += len(commits_response.json())
+
+# Pagination for repositories
+page = 1
+while True:
+    # Get repositories with pagination
+    url = f"{base_url}?page={page}&per_page=100"  # 100 repos per page
+    response = requests.get(url, headers=headers)
+    repos = response.json()
+
+    # If there are no more repos, break out of the loop
+    if not repos:
+        break
+
+    # Process each repository to count commits
+    for repo in repos:
+        repo_name = repo["name"]
+        
+        # Pagination for commits
+        commit_page = 1
+        while True:
+            commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits?page={commit_page}&per_page=100"
+            commits_response = requests.get(commits_url, headers=headers)
+            commits = commits_response.json()
+            
+            # If there are no more commits, break
+            if not commits:
+                break
+            
+            # Add the number of commits in this page
+            total_commits += len(commits)
+            commit_page += 1
+
+    page += 1
 
 # Print the total commits (for testing in the Action logs)
 print(f"Total Commits: {total_commits}")
