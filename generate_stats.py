@@ -92,41 +92,58 @@ def fetch_languages():
     return top_languages
 
 # Generate stats image
+from PIL import Image, ImageDraw, ImageFont
+
 def generate_image(stats, languages):
-    # Set up image dimensions and background color
-    img_width, img_height = 600, 350
-    img = Image.new("RGB", (img_width, img_height), color="white")
+    # Set up image dimensions and colors
+    img_width, img_height = 600, 300
+    background_color = "#23272A"  # Dark theme background
+    text_color = "#FFFFFF"        # White text
+    title_color = "#FFD700"       # Gold color for titles
+    border_radius = 10            # Rounded corners for borders
+
+    img = Image.new("RGB", (img_width, img_height), color=background_color)
     draw = ImageDraw.Draw(img)
-    
-    # Define fonts and colors
+
+    # Load default font or add a custom font path if you have one
     title_font = ImageFont.load_default()
     stat_font = ImageFont.load_default()
     language_font = ImageFont.load_default()
-    
+
     # Define starting y position
-    y_position = 10
-    
-    # Add Title and Total Contributions
-    draw.text((10, y_position), "GitHub Stats", fill="black", font=title_font)
-    y_position += 30
-    draw.text((10, y_position), f"Total Contributions: {stats['total_contributions']}", fill="black", font=stat_font)
-    
-    # Add Current Streak and Longest Streak
+    y_position = 20
+
+    # Draw Border Rectangle with Rounded Corners (simulate rounded corners)
+    draw.rounded_rectangle(
+        [(10, 10), (img_width - 10, img_height - 10)],
+        radius=border_radius,
+        outline=title_color,
+        width=2
+    )
+
+    # Add Title
+    draw.text((img_width // 2 - 50, y_position), "GitHub Stats", fill=title_color, font=title_font)
     y_position += 40
-    draw.text((10, y_position), f"Current Streak: {stats['current_streak']} days", fill="black", font=stat_font)
+
+    # Add Total Contributions
+    draw.text((20, y_position), f"Total Contributions: {stats['total_contributions']}", fill=text_color, font=stat_font)
     y_position += 30
-    draw.text((10, y_position), f"Longest Streak: {stats['longest_streak']} days", fill="black", font=stat_font)
-    
-    # Add Languages Section
+
+    # Add Current Streak and Longest Streak
+    draw.text((20, y_position), f"Current Streak: {stats['current_streak']} days", fill=text_color, font=stat_font)
+    y_position += 30
+    draw.text((20, y_position), f"Longest Streak: {stats['longest_streak']} days", fill=text_color, font=stat_font)
     y_position += 50
-    draw.text((10, y_position), "Top Languages Used:", fill="black", font=title_font)
+
+    # Add Languages Section Title
+    draw.text((20, y_position), "Top Languages Used:", fill=title_color, font=title_font)
     y_position += 30
-    
+
     # Display each language and percentage
     for lang, percent in languages.items():
-        draw.text((10, y_position), f"{lang}: {percent:.2f}%", fill="black", font=language_font)
+        draw.text((20, y_position), f"{lang}: {percent:.2f}%", fill=text_color, font=language_font)
         y_position += 20
-    
+
     # Save the image
     img.save("stats_board.png")
 
