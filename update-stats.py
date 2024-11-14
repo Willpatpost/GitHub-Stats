@@ -4,8 +4,12 @@ import os
 # Your GitHub username
 github_username = "Willpatpost"
 
-# Emails associated with your commits
-user_emails = ["willpatpost@gmail.com", "wpost003@odu.edu"]
+# List of emails, including no-reply format
+user_emails = [
+    "willpatpost@gmail.com",
+    "wpost003@odu.edu",
+    f"{github_username}@users.noreply.github.com"  # GitHub no-reply format
+]
 
 # GitHub API base URL for user repositories
 base_url = f"https://api.github.com/users/{github_username}/repos"
@@ -31,9 +35,6 @@ while True:
         print("No more repositories found.")
         break
 
-    # Debug: Print repository names being processed
-    print(f"Processing page {page} with {len(repos)} repositories")
-
     # Process each repository to count all commits in all branches
     for repo in repos:
         repo_name = repo["name"]
@@ -55,10 +56,7 @@ while True:
                 print(f"No more commits found on page {commit_page} for repository {repo_name}.")
                 break
             
-            # Debug: Print commit details
-            print(f"Found {len(commits)} commits on page {commit_page} for repository {repo_name}")
-
-            # Count commits where the author email matches one of your emails
+            # Count commits where the author email matches one of your emails or no-reply email
             count_for_page = sum(
                 1 for commit in commits 
                 if commit["commit"]["author"]["email"] in user_emails
