@@ -36,31 +36,37 @@ def fetch_contributions():
 
     contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
-    # Initialize streak counters
+    # Initialize counters for current and longest streaks
     current_streak, longest_streak = 0, 0
     today = datetime.now().date()
     in_streak = False
+    consecutive_days = 0  # To track consecutive days including weekends
 
-    # Loop through contribution days in reverse (from most recent to oldest)
+    # Loop through contribution days in reverse order
     for week in reversed(contributions):
         for day in reversed(week["contributionDays"]):
             date = datetime.strptime(day["date"], "%Y-%m-%d").date()
             contribution_count = day["contributionCount"]
 
-            # Check if the date is today or a previous consecutive day (ignoring weekends)
-            if date <= today and (in_streak or date == today - timedelta(days=current_streak)):
-                if contribution_count > 0 or date.weekday() >= 5:  # Allow weekends without contributions
-                    # Increment the streak if it's a contribution day or weekend
+            # Only consider days up to today
+            if date <= today:
+                # Check if the day is a weekend
+                is_weekend = date.weekday() >= 5
+
+                if contribution_count > 0:
+                    # If there's a contribution, continue the streak
                     current_streak += 1
-                    in_streak = True
                     longest_streak = max(longest_streak, current_streak)
+                    consecutive_days = 0  # Reset consecutive days gap counter
+                    in_streak = True
+                elif is_weekend:
+                    # If it's a weekend without contributions, skip it
+                    consecutive_days += 1
                 else:
-                    # Break current streak if there's a gap on a weekday
+                    # If it's a weekday without contributions, break the streak
                     in_streak = False
                     current_streak = 0
-            else:
-                # Break streak if days are not consecutive
-                in_streak = False
+                    consecutive_days = 0  # Reset the gap counter for weekdays
 
     return {
         "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
