@@ -1,1 +1,1 @@
-Total Contributions: <!--CONTRIBUTION_COUNT-->0<!--END_CONTRIBUTION_COUNT-->
+![GitHub Stats](./stats_board.png)
