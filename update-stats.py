@@ -28,11 +28,16 @@ while True:
 
     # If there are no more repos, break out of the loop
     if not repos:
+        print("No more repositories found.")
         break
+
+    # Debug: Print repository names being processed
+    print(f"Processing page {page} with {len(repos)} repositories")
 
     # Process each repository to count all commits in all branches
     for repo in repos:
         repo_name = repo["name"]
+        print(f"Checking repository: {repo_name}")
         
         # Pagination for commits
         commit_page = 1
@@ -47,13 +52,20 @@ while True:
             
             # If there are no more commits, break
             if not commits:
+                print(f"No more commits found on page {commit_page} for repository {repo_name}.")
                 break
             
+            # Debug: Print commit details
+            print(f"Found {len(commits)} commits on page {commit_page} for repository {repo_name}")
+
             # Count commits where the author email matches one of your emails
-            total_commits += sum(
+            count_for_page = sum(
                 1 for commit in commits 
                 if commit["commit"]["author"]["email"] in user_emails
             )
+            total_commits += count_for_page
+            print(f"Commits by specified emails on this page: {count_for_page}")
+
             commit_page += 1
 
     page += 1
