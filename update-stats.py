@@ -4,6 +4,9 @@ import os
 # Your GitHub username
 github_username = "Willpatpost"
 
+# Emails associated with your commits
+user_emails = ["willpatpost@gmail.com", "wpost003@odu.edu"]
+
 # GitHub API base URL for user repositories
 base_url = f"https://api.github.com/users/{github_username}/repos"
 
@@ -46,8 +49,11 @@ while True:
             if not commits:
                 break
             
-            # Filter commits authored by your GitHub username
-            total_commits += sum(1 for commit in commits if commit["commit"]["author"]["name"] == github_username)
+            # Count commits where the author email matches one of your emails
+            total_commits += sum(
+                1 for commit in commits 
+                if commit["commit"]["author"]["email"] in user_emails
+            )
             commit_page += 1
 
     page += 1
