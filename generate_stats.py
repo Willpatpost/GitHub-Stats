@@ -64,9 +64,9 @@ def fetch_contributions():
 def fetch_languages():
     languages = {}
     page = 1
-    excluded_language = "GAML"  # Adjust this to the exact name if different
+    exclusion_threshold = 90.0  # Exclude languages that take up more than 90%
 
-    # Retrieve language usage across repositories
+    # Retrieve language usage from all repositories
     while True:
         url = f"https://api.github.com/users/{github_username}/repos?page={page}&per_page=100"
         response = requests.get(url, headers=headers)
@@ -77,14 +77,17 @@ def fetch_languages():
             lang_url = repo["languages_url"]
             lang_data = requests.get(lang_url, headers=headers).json()
             for lang, bytes in lang_data.items():
-                if lang != excluded_language:  # Exclude the unwanted language
-                    languages[lang] = languages.get(lang, 0) + bytes
+                languages[lang] = languages.get(lang, 0) + bytes
         page += 1
 
-    # Calculate new percentages excluding the unwanted language
+    # Calculate total bytes and filter out dominant language
     total_bytes = sum(languages.values())
-    top_languages = sorted(languages.items(), key=lambda x: x[1], reverse=True)[:5]
-    top_languages = {lang: (bytes / total_bytes) * 100 for lang, bytes in top_languages}
+    filtered_languages = {lang: bytes for lang, bytes in languages.items() if (bytes / total_bytes) * 100 < exclusion_threshold}
+
+    # Calculate percentages for remaining languages
+    new_total_bytes = sum(filtered_languages.values())
+    top_languages = sorted(filtered_languages.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_languages = {lang: (bytes / new_total_bytes) * 100 for lang, bytes in top_languages}
     
     return top_languages
 
