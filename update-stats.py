@@ -27,18 +27,16 @@ while True:
     if not repos:
         break
 
-    # Process each repository to count commits in the default branch
+    # Process each repository to count commits authored by you across all branches
     for repo in repos:
         repo_name = repo["name"]
-        default_branch = repo["default_branch"]
         
-        # Pagination for commits in the default branch
+        # Pagination for commits
         commit_page = 1
         while True:
             commits_url = f"https://api.github.com/repos/{github_username}/{repo_name}/commits"
             params = {
                 "author": github_username,  # Only count commits authored by you
-                "sha": default_branch,  # Only the default branch
                 "page": commit_page,
                 "per_page": 100
             }
