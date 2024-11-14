@@ -36,30 +36,38 @@ def fetch_contributions():
 
     contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
-    # Calculate current and longest streaks
+    # Initialize streak counters
     current_streak, longest_streak = 0, 0
-    total_contributions = 0
     today = datetime.now().date()
-    ongoing_streak = True
+    in_streak = False
 
+    # Loop through contribution days in reverse (from most recent to oldest)
     for week in reversed(contributions):
         for day in reversed(week["contributionDays"]):
-            if day["contributionCount"] > 0:
-                current_streak += 1
-                longest_streak = max(longest_streak, current_streak)
-            else:
-                if ongoing_streak:
-                    ongoing_streak = False
+            date = datetime.strptime(day["date"], "%Y-%m-%d").date()
+            contribution_count = day["contributionCount"]
+
+            # Check if the date is today or a previous consecutive day (ignoring weekends)
+            if date <= today and (in_streak or date == today - timedelta(days=current_streak)):
+                if contribution_count > 0 or date.weekday() >= 5:  # Allow weekends without contributions
+                    # Increment the streak if it's a contribution day or weekend
+                    current_streak += 1
+                    in_streak = True
+                    longest_streak = max(longest_streak, current_streak)
                 else:
-                    current_streak = 0  # Reset if there's a gap
-    
+                    # Break current streak if there's a gap on a weekday
+                    in_streak = False
+                    current_streak = 0
+            else:
+                # Break streak if days are not consecutive
+                in_streak = False
+
     return {
         "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
         "current_streak": current_streak,
         "longest_streak": longest_streak
     }
 
-# Fetch top languages
 # Fetch top languages, excluding any specified language
 def fetch_languages():
     languages = {}
