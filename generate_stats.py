@@ -60,9 +60,13 @@ def fetch_contributions():
     }
 
 # Fetch top languages
+# Fetch top languages, excluding any specified language
 def fetch_languages():
     languages = {}
     page = 1
+    excluded_language = "GAML"  # Replace with the exact name if needed
+
+    # Retrieve language usage from all repositories
     while True:
         url = f"https://api.github.com/users/{github_username}/repos?page={page}&per_page=100"
         response = requests.get(url, headers=headers)
@@ -73,13 +77,15 @@ def fetch_languages():
             lang_url = repo["languages_url"]
             lang_data = requests.get(lang_url, headers=headers).json()
             for lang, bytes in lang_data.items():
-                languages[lang] = languages.get(lang, 0) + bytes
+                if lang != excluded_language:  # Exclude specified language
+                    languages[lang] = languages.get(lang, 0) + bytes
         page += 1
 
-    # Get top 5 languages
+    # Recalculate percentages excluding the excluded language
     total_bytes = sum(languages.values())
     top_languages = sorted(languages.items(), key=lambda x: x[1], reverse=True)[:5]
     top_languages = {lang: (bytes / total_bytes) * 100 for lang, bytes in top_languages}
+    
     return top_languages
 
 # Generate stats image
