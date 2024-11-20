@@ -39,8 +39,8 @@ def fetch_contributions():
     # Initialize counters for current and longest streaks
     current_streak = 0
     longest_streak = 0
-    ongoing_streak = True  # Flag to track the ongoing streak
     today = datetime.now().date()
+    is_current_streak = True  # Flag to check if we are on the current streak
 
     # Loop through contribution days in reverse order
     for week in reversed(contributions):
@@ -48,18 +48,17 @@ def fetch_contributions():
             date = datetime.strptime(day["date"], "%Y-%m-%d").date()
             contribution_count = day["contributionCount"]
 
-            # Only consider days up to today
             if date <= today:
                 if contribution_count > 0:
-                    # If contributions exist, continue the streak
-                    if ongoing_streak:
-                        current_streak += 1
+                    # Continue the current streak
+                    current_streak += 1
                     longest_streak = max(longest_streak, current_streak)
                 else:
-                    # If no contributions and it’s not the weekend, end the current streak
-                    if date.weekday() < 5:  # Skip weekends
-                        ongoing_streak = False
-                        current_streak = 0
+                    if date == today - timedelta(days=current_streak):
+                        # If it's the day right after the last streaked day, end the current streak
+                        is_current_streak = False
+                    if not is_current_streak:
+                        current_streak = 0  # Reset if the streak broke on a weekday
 
     return {
         "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
