@@ -122,9 +122,13 @@ def update_svg(stats, languages):
         languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
     svg_content = svg_content.replace("id=\"top_languages\" y=\"0\">", f"id=\"top_languages\" y=\"0\">{languages_text}")
 
+    # Debug output to verify replacement
+    print("Updated SVG content:", svg_content[:500])  # Print the first 500 characters for verification
+
     # Save the updated SVG
     with open("stats_board.svg", "w") as file:
         file.write(svg_content)
+    print("SVG file updated successfully.")
 
 # Main function to fetch data and update the SVG
 def main():
