@@ -30,10 +30,10 @@
   <!-- Top Languages Used Section -->
   <g class="section" transform="translate(650, 100)">
     <text class="title" x="0" y="-30">Top Languages Used</text>
-    <text class="label" id="top_languages" x="0" y="0">
+    <text class="label" id="top_languages" x="0" y="0"><tspan x="0" dy="1.2em">Python: 1.05%</tspan><tspan x="0" dy="1.2em">JavaScript: 0.89%</tspan><tspan x="0" dy="1.2em">HTML: 0.57%</tspan><tspan x="0" dy="1.2em">CSS: 0.51%</tspan><tspan x="0" dy="1.2em">Java: 0.22%</tspan>
       <!-- Language stats will be dynamically inserted here -->
     </text>
   </g>
 </svg>
 
-<!-- Last updated: 2024-11-20 03:59:25 -->
+<!-- Last updated: 2024-11-20 04:02:15 -->
