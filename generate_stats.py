@@ -111,9 +111,6 @@ def update_svg(stats, languages):
     with open("stats_template.svg", "r") as file:
         svg_content = file.read()
 
-    # Debug information to verify replacements
-    print("Original SVG Content Preview:", svg_content[:500])  # Show initial SVG template content
-
     # Replace placeholders with actual stats
     svg_content = svg_content.replace("id=\"total_contributions\">0", f"id=\"total_contributions\">{stats['total_contributions']}")
     svg_content = svg_content.replace("id=\"current_streak\">0", f"id=\"current_streak\">{stats['current_streak']}")
@@ -123,16 +120,11 @@ def update_svg(stats, languages):
     languages_text = ""
     for lang, percent in languages.items():
         languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
-    
-    # Insert the formatted languages into the SVG
     svg_content = svg_content.replace("id=\"top_languages\" x=\"0\" y=\"0\">", f"id=\"top_languages\" x=\"0\" y=\"0\">{languages_text}")
 
     # Add a timestamp to force Git to detect changes
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     svg_content += f"\n<!-- Last updated: {timestamp} -->"
-
-    # Debug output to verify replacement
-    print("Updated SVG Content Preview:", svg_content[:500])  # Show updated SVG content preview
 
     # Save the updated SVG
     with open("stats_board.svg", "w") as file:
