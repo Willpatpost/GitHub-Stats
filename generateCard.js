@@ -52,7 +52,7 @@ async function fetchContributions() {
   
   contributions.weeks.reverse().forEach(week => {
     week.contributionDays.reverse().forEach(day => {
-      const date = day.date;
+      const date = day.date; // Ensure `date` is declared here
       const count = day.contributionCount;
   
       if (date <= today) {  // Process only dates up to today
@@ -71,10 +71,12 @@ async function fetchContributions() {
           }
         }
       }
+  
+      // Log inside the loop to ensure `date` is accessible
+      console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}`);
     });
   });
-
-  console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}`);
+  
   return { totalContributions, currentStreak, longestStreak };
 }
 
