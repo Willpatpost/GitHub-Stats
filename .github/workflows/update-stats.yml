@@ -28,6 +28,9 @@ jobs:
         run: |
           python generate_stats.py
 
+      - name: Check Git status before commit
+        run: git status
+      
       - name: Commit and push the updated SVG
         env:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
