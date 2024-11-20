@@ -38,7 +38,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add -f stats_board.svg
-          git commit -m "Update stats board SVG" || echo "No changes to commit"
+          git commit -m "Update stats board SVG with new data" || echo "No changes to commit"
           git push
 
       - name: Wait for file update
