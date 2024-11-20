@@ -2,7 +2,7 @@ name: Update GitHub Stats
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Runs at the start of every hour
+    - cron: '0 * * * *'  # Runs every hour
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16' # Use the latest Node.js LTS version
+          node-version: '16'
 
       - name: Install dependencies
         run: npm install
@@ -26,12 +26,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
         run: node generateCard.js
 
+      - name: Switch to main branch
+        run: |
+          git checkout main
+          git pull origin main
+
+      - name: Merge js into main
+        run: |
+          git merge js || echo "Already up to date."
+
       - name: Ensure `stats_board.svg` is tracked
         run: |
           git add stats_board.svg
-          git status # Debug: Check that stats_board.svg is in the staging area
+          git status
 
-      - name: Commit and push changes if needed
+      - name: Commit and push the updated SVG
         env:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
         run: |
@@ -41,5 +50,5 @@ jobs:
             echo "No changes detected in stats_board.svg. Skipping commit.";
           else
             git commit -m "Update stats board SVG with new data"
-            git push
+            git push origin main
           fi
