@@ -122,6 +122,10 @@ def update_svg(stats, languages):
         languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
     svg_content = svg_content.replace("id=\"top_languages\" y=\"0\">", f"id=\"top_languages\" y=\"0\">{languages_text}")
 
+    # Add a timestamp to force Git to detect changes
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    svg_content += f"\n<!-- Last updated: {timestamp} -->"
+
     # Debug output to verify replacement in the GitHub Actions logs
     print("Updated SVG Content Preview in Workflow:", svg_content[:500])  # Print first 500 characters
 
