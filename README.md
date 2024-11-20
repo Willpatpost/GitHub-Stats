@@ -1,1 +1,1 @@
-![GitHub Stats](./stats_board.png)
+![GitHub Stats](./stats_board.svg)
