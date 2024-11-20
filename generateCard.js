@@ -47,8 +47,8 @@ async function fetchContributions() {
   let totalContributions = contributions.totalContributions;
   let currentStreak = 0;
   let longestStreak = 0;
-  let streakActive = true;
   let today = new Date().toISOString().split('T')[0];
+  let inStreak = false;
 
   contributions.weeks.reverse().forEach(week => {
     week.contributionDays.reverse().forEach(day => {
@@ -57,37 +57,43 @@ async function fetchContributions() {
 
       if (date <= today) {
         if (count > 0) {
-          if (streakActive) currentStreak++;
+          if (inStreak) currentStreak++;
           longestStreak = Math.max(longestStreak, currentStreak);
+          inStreak = true;
         } else {
-          streakActive = false;
+          inStreak = false;
           currentStreak = 0;
         }
       }
     });
   });
 
-  console.log("Fetched Contributions:", { totalContributions, currentStreak, longestStreak });
   return { totalContributions, currentStreak, longestStreak };
 }
 
 async function fetchTopLanguages() {
-  const url = `https://api.github.com/users/${username}/repos?per_page=100`;
-  const response = await fetch(url, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  const repos = await response.json();
+  let page = 1;
   const languages = {};
 
-  for (const repo of repos) {
-    const langUrl = repo.languages_url;
-    const langResponse = await fetch(langUrl, {
+  while (true) {
+    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100`;
+    const response = await fetch(url, {
       headers: { "Authorization": `Bearer ${token}` }
     });
-    const langData = await langResponse.json();
-    for (const [lang, bytes] of Object.entries(langData)) {
-      languages[lang] = (languages[lang] || 0) + bytes;
+    const repos = await response.json();
+    if (!repos.length) break;
+
+    for (const repo of repos) {
+      const langUrl = repo.languages_url;
+      const langResponse = await fetch(langUrl, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const langData = await langResponse.json();
+      for (const [lang, bytes] of Object.entries(langData)) {
+        languages[lang] = (languages[lang] || 0) + bytes;
+      }
     }
+    page++;
   }
 
   const totalBytes = Object.values(languages).reduce((sum, val) => sum + val, 0);
@@ -144,7 +150,6 @@ async function generateSVG() {
     </svg>
   `;
 
-  console.log("Generated SVG Content Preview:", svgContent);
   fs.writeFileSync("stats_board.svg", svgContent);
   console.log("SVG file created successfully.");
 }
