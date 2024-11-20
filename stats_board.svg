@@ -28,10 +28,10 @@
   </g>
 
   <!-- Top Languages Used Section -->
-  <g class="section" transform="translate(750, 100)">
-    <text class="title" y="-30">Top Languages Used</text>
-    <text class="label" id="top_languages" y="0"><tspan x="0" dy="1.2em">Python: 30.10%</tspan><tspan x="0" dy="1.2em">JavaScript: 25.35%</tspan><tspan x="0" dy="1.2em">HTML: 16.19%</tspan><tspan x="0" dy="1.2em">CSS: 14.69%</tspan><tspan x="0" dy="1.2em">Java: 6.42%</tspan>
-      <!-- Language stats will be inserted here -->
+  <g class="section" transform="translate(650, 100)">
+    <text class="title" x="0" y="-30">Top Languages Used</text>
+    <text class="label" id="top_languages" x="0" y="0">
+      <!-- Language stats will be dynamically inserted here -->
     </text>
   </g>
 </svg>
