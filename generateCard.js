@@ -48,31 +48,33 @@ async function fetchContributions() {
   let currentStreak = 0;
   let longestStreak = 0;
   let today = new Date().toISOString().split('T')[0];
-  let inStreak = false; // Tracks if we're currently in an active streak
-
+  let lastDayHadContributions = false;
+  
   contributions.weeks.reverse().forEach(week => {
     week.contributionDays.reverse().forEach(day => {
       const date = day.date;
       const count = day.contributionCount;
-
+  
       if (date <= today) {  // Process only dates up to today
         if (count > 0) {    // Day with contributions
-          if (inStreak) {
-            currentStreak++;  // Continue streak
+          if (lastDayHadContributions) {
+            currentStreak++; // Extend the streak
           } else {
-            inStreak = true;
             currentStreak = 1; // Start a new streak
           }
           longestStreak = Math.max(longestStreak, currentStreak);
+          lastDayHadContributions = true;
         } else {  // Day with zero contributions
-          inStreak = false;
-          currentStreak = 0; // Reset current streak
+          if (lastDayHadContributions) {
+            // Current streak ends only after the most recent streak day
+            lastDayHadContributions = false;
+          }
         }
       }
     });
   });
 
-  console.log("Fetched Contributions:", { totalContributions, currentStreak, longestStreak });
+  console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}`);
   return { totalContributions, currentStreak, longestStreak };
 }
 
