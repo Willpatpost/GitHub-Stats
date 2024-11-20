@@ -123,9 +123,9 @@ def update_svg(stats, languages):
     svg_content = svg_content.replace("id=\"top_languages\" y=\"0\">", f"id=\"top_languages\" y=\"0\">{languages_text}")
 
     # Debug output to verify replacement
-    print("Updated SVG content:", svg_content[:500])  # Print the first 500 characters for verification
+    print("Updated SVG content preview:", svg_content[:500])  # Print the first 500 characters for verification
 
-    # Save the updated SVG
+    # Save the updated SVG and confirm writing
     with open("stats_board.svg", "w") as file:
         file.write(svg_content)
     print("SVG file updated successfully.")
