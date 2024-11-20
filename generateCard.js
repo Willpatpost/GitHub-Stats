@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
+const exclusionThreshold = 90.0;  // Exclude languages that take up more than 90%
 
 // Helper function to fetch data from GitHub API
 async function fetchFromGitHub(query) {
@@ -49,16 +50,21 @@ async function fetchContributions() {
   let currentStreak = 0;
   let longestStreak = 0;
   let streakActive = true;
+  let today = new Date().toISOString().split('T')[0];
 
   contributions.weeks.reverse().forEach(week => {
     week.contributionDays.reverse().forEach(day => {
+      const date = day.date;
       const count = day.contributionCount;
-      if (count > 0) {
-        currentStreak += streakActive ? 1 : 0;
-        longestStreak = Math.max(longestStreak, currentStreak);
-      } else {
-        streakActive = false;
-        currentStreak = 0;
+
+      if (date <= today) {
+        if (count > 0) {
+          if (streakActive) currentStreak++;
+          longestStreak = Math.max(longestStreak, currentStreak);
+        } else {
+          streakActive = false;
+          currentStreak = 0;
+        }
       }
     });
   });
@@ -66,7 +72,7 @@ async function fetchContributions() {
   return { totalContributions, currentStreak, longestStreak };
 }
 
-// Fetch top languages
+// Fetch top languages, excluding dominant ones
 async function fetchTopLanguages() {
   const url = `https://api.github.com/users/${username}/repos?per_page=100`;
   const response = await fetch(url, {
@@ -87,8 +93,13 @@ async function fetchTopLanguages() {
   }
 
   const totalBytes = Object.values(languages).reduce((sum, val) => sum + val, 0);
-  return Object.entries(languages)
-    .map(([lang, bytes]) => ({ lang, percent: (bytes / totalBytes) * 100 }))
+  const filteredLanguages = Object.fromEntries(
+    Object.entries(languages).filter(([_, bytes]) => (bytes / totalBytes) * 100 < exclusionThreshold)
+  );
+
+  const newTotalBytes = Object.values(filteredLanguages).reduce((sum, val) => sum + val, 0);
+  return Object.entries(filteredLanguages)
+    .map(([lang, bytes]) => ({ lang, percent: (bytes / newTotalBytes) * 100 }))
     .sort((a, b) => b.percent - a.percent)
     .slice(0, 5);
 }
