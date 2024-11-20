@@ -122,10 +122,10 @@ def update_svg(stats, languages):
         languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
     svg_content = svg_content.replace("id=\"top_languages\" y=\"0\">", f"id=\"top_languages\" y=\"0\">{languages_text}")
 
-    # Debug output to verify replacement
-    print("Updated SVG content preview:", svg_content[:500])  # Print the first 500 characters for verification
+    # Debug output to verify replacement in the GitHub Actions logs
+    print("Updated SVG Content Preview in Workflow:", svg_content[:500])  # Print first 500 characters
 
-    # Save the updated SVG and confirm writing
+    # Save the updated SVG
     with open("stats_board.svg", "w") as file:
         file.write(svg_content)
     print("SVG file updated successfully.")
@@ -134,6 +134,11 @@ def update_svg(stats, languages):
 def main():
     stats = fetch_contributions()
     languages = fetch_languages()
+    
+    # Output the fetched data to workflow logs
+    print("Stats Fetched in Workflow:", stats)
+    print("Languages Fetched in Workflow:", languages)
+    
     update_svg(stats, languages)
 
 if __name__ == "__main__":
