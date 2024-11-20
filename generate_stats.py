@@ -100,55 +100,48 @@ def fetch_languages():
 # Generate stats image
 from PIL import Image, ImageDraw, ImageFont
 
+from PIL import Image, ImageDraw, ImageFont
+
 def generate_image(stats, languages):
     # Set up image dimensions and colors
-    img_width, img_height = 600, 300
-    background_color = "#23272A"  # Dark theme background
+    img_width, img_height = 800, 400
+    background_color = "#1E1E1E"  # Dark theme background
     text_color = "#FFFFFF"        # White text
-    title_color = "#FFD700"       # Gold color for titles
-    border_radius = 10            # Rounded corners for borders
+    green_color = "#4CAF50"       # Green color for contributions and longest streak
+    orange_color = "#FFA500"      # Orange color for current streak
 
     img = Image.new("RGB", (img_width, img_height), color=background_color)
     draw = ImageDraw.Draw(img)
 
-    # Load default font or add a custom font path if you have one
+    # Load fonts (use any custom font if available)
     title_font = ImageFont.load_default()
-    stat_font = ImageFont.load_default()
-    language_font = ImageFont.load_default()
+    large_font = ImageFont.truetype("arialbd.ttf", 36)  # Bold font for numbers
+    small_font = ImageFont.truetype("arial.ttf", 20)
 
-    # Define starting y position
-    y_position = 20
+    # Define positions for each column
+    x_positions = [img_width // 6, img_width // 2, img_width * 5 // 6]
+    y_position = 60
 
-    # Draw Border Rectangle with Rounded Corners (simulate rounded corners)
-    draw.rounded_rectangle(
-        [(10, 10), (img_width - 10, img_height - 10)],
-        radius=border_radius,
-        outline=title_color,
-        width=2
-    )
+    # Draw Total Contributions
+    draw.text((x_positions[0], y_position), f"{stats['total_contributions']}", fill=green_color, font=large_font, anchor="ms")
+    draw.text((x_positions[0], y_position + 40), "Total Contributions", fill=text_color, font=small_font, anchor="ms")
+    draw.text((x_positions[0], y_position + 70), "Oct 3, 2023 - Present", fill=text_color, font=small_font, anchor="ms")
 
-    # Add Title
-    draw.text((img_width // 2 - 50, y_position), "GitHub Stats", fill=title_color, font=title_font)
-    y_position += 40
+    # Draw Current Streak with Flame Icon
+    flame_icon = "🔥"  # You can replace this with an image if desired
+    draw.text((x_positions[1], y_position - 20), flame_icon, fill=orange_color, font=large_font, anchor="ms")
+    draw.text((x_positions[1], y_position), f"{stats['current_streak']}", fill=orange_color, font=large_font, anchor="ms")
+    draw.text((x_positions[1], y_position + 40), "Current Streak", fill=text_color, font=small_font, anchor="ms")
+    draw.text((x_positions[1], y_position + 70), "Sep 27 - Nov 19", fill=text_color, font=small_font, anchor="ms")
 
-    # Add Total Contributions
-    draw.text((20, y_position), f"Total Contributions: {stats['total_contributions']}", fill=text_color, font=stat_font)
-    y_position += 30
+    # Draw Longest Streak
+    draw.text((x_positions[2], y_position), f"{stats['longest_streak']}", fill=green_color, font=large_font, anchor="ms")
+    draw.text((x_positions[2], y_position + 40), "Longest Streak", fill=text_color, font=small_font, anchor="ms")
+    draw.text((x_positions[2], y_position + 70), "Sep 27 - Nov 19", fill=text_color, font=small_font, anchor="ms")
 
-    # Add Current Streak and Longest Streak
-    draw.text((20, y_position), f"Current Streak: {stats['current_streak']} days", fill=text_color, font=stat_font)
-    y_position += 30
-    draw.text((20, y_position), f"Longest Streak: {stats['longest_streak']} days", fill=text_color, font=stat_font)
-    y_position += 50
-
-    # Add Languages Section Title
-    draw.text((20, y_position), "Top Languages Used:", fill=title_color, font=title_font)
-    y_position += 30
-
-    # Display each language and percentage
-    for lang, percent in languages.items():
-        draw.text((20, y_position), f"{lang}: {percent:.2f}%", fill=text_color, font=language_font)
-        y_position += 20
+    # Draw Exclusion Note at the Bottom
+    exclusion_note = "* Excluding Sun, Sat"
+    draw.text((img_width // 2, img_height - 30), exclusion_note, fill=text_color, font=small_font, anchor="ms")
 
     # Save the image
     img.save("stats_board.png")
