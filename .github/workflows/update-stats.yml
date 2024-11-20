@@ -2,7 +2,7 @@ name: Update GitHub Stats
 
 on:
   schedule:
-    - cron: '*/60 * * * *'  # Runs every hour
+    - cron: '0 * * * *'  # Runs at the start of every hour
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -11,12 +11,12 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '16' # Use a more recent Node.js version
 
       - name: Install dependencies
         run: npm install
@@ -26,8 +26,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
         run: node generateCard.js
 
-      - name: Check Git status before commit
-        run: git status
+      - name: Check if stats_board.svg is modified
+        run: |
+          if git diff --quiet stats_board.svg; then
+            echo "No changes detected in stats_board.svg. Exiting.";
+            exit 0;
+          fi
 
       - name: Commit and push the updated SVG
         env:
@@ -35,6 +39,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f stats_board.svg
-          git commit -m "Update stats board SVG with new data" || echo "No changes to commit"
+          git add stats_board.svg
+          git commit -m "Update stats board SVG with new data"
           git push
