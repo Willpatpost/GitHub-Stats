@@ -6,7 +6,6 @@ const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
 const exclusionThreshold = 90.0;  // Exclude languages that take up more than 90%
 
-// Helper function to fetch data from GitHub API
 async function fetchFromGitHub(query) {
   const response = await fetch("https://api.github.com/graphql", {
     method: "POST",
@@ -24,7 +23,6 @@ async function fetchFromGitHub(query) {
   return data.data;
 }
 
-// Fetch contributions and calculate streaks
 async function fetchContributions() {
   const query = `
     {
@@ -69,10 +67,10 @@ async function fetchContributions() {
     });
   });
 
+  console.log("Fetched Contributions:", { totalContributions, currentStreak, longestStreak });
   return { totalContributions, currentStreak, longestStreak };
 }
 
-// Fetch top languages, excluding dominant ones
 async function fetchTopLanguages() {
   const url = `https://api.github.com/users/${username}/repos?per_page=100`;
   const response = await fetch(url, {
@@ -104,7 +102,6 @@ async function fetchTopLanguages() {
     .slice(0, 5);
 }
 
-// Generate the SVG card
 async function generateSVG() {
   const { totalContributions, currentStreak, longestStreak } = await fetchContributions();
   const topLanguages = await fetchTopLanguages();
@@ -147,6 +144,7 @@ async function generateSVG() {
     </svg>
   `;
 
+  console.log("Generated SVG Content Preview:", svgContent);
   fs.writeFileSync("stats_board.svg", svgContent);
   console.log("SVG file created successfully.");
 }
