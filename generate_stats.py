@@ -1,7 +1,6 @@
 import requests
 import os
 from datetime import datetime, timedelta
-from PIL import Image, ImageDraw, ImageFont
 
 # Your GitHub username
 github_username = "Willpatpost"
@@ -37,12 +36,10 @@ def fetch_contributions():
     contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
     # Initialize counters for current and longest streaks
-    current_streak = 0
-    longest_streak = 0
+    current_streak, longest_streak = 0, 0
     today = datetime.now().date()
-    is_current_streak = True  # Flag to check if we are on the current streak
+    in_streak = False
 
-    # Loop through contribution days in reverse order
     for week in reversed(contributions):
         for day in reversed(week["contributionDays"]):
             date = datetime.strptime(day["date"], "%Y-%m-%d").date()
@@ -50,15 +47,12 @@ def fetch_contributions():
 
             if date <= today:
                 if contribution_count > 0:
-                    # Continue the current streak
                     current_streak += 1
                     longest_streak = max(longest_streak, current_streak)
+                    in_streak = True
                 else:
-                    if date == today - timedelta(days=current_streak):
-                        # If it's the day right after the last streaked day, end the current streak
-                        is_current_streak = False
-                    if not is_current_streak:
-                        current_streak = 0  # Reset if the streak broke on a weekday
+                    in_streak = False
+                    current_streak = 0
 
     return {
         "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
@@ -66,13 +60,12 @@ def fetch_contributions():
         "longest_streak": longest_streak
     }
 
-# Fetch top languages, excluding any specified language
+# Fetch top languages
 def fetch_languages():
     languages = {}
     page = 1
     exclusion_threshold = 90.0  # Exclude languages that take up more than 90%
 
-    # Retrieve language usage from all repositories
     while True:
         url = f"https://api.github.com/users/{github_username}/repos?page={page}&per_page=100"
         response = requests.get(url, headers=headers)
@@ -86,72 +79,40 @@ def fetch_languages():
                 languages[lang] = languages.get(lang, 0) + bytes
         page += 1
 
-    # Calculate total bytes and filter out dominant language
     total_bytes = sum(languages.values())
     filtered_languages = {lang: bytes for lang, bytes in languages.items() if (bytes / total_bytes) * 100 < exclusion_threshold}
 
-    # Calculate percentages for remaining languages
     new_total_bytes = sum(filtered_languages.values())
     top_languages = sorted(filtered_languages.items(), key=lambda x: x[1], reverse=True)[:5]
     top_languages = {lang: (bytes / new_total_bytes) * 100 for lang, bytes in top_languages}
     
     return top_languages
 
-# Generate stats image
-from PIL import Image, ImageDraw, ImageFont
+# Update the SVG template with stats
+def update_svg(stats, languages):
+    with open("stats_template.svg", "r") as file:
+        svg_content = file.read()
 
-from PIL import Image, ImageDraw, ImageFont
+    # Replace placeholders with actual stats
+    svg_content = svg_content.replace("id=\"total_contributions\">0", f"id=\"total_contributions\">{stats['total_contributions']}")
+    svg_content = svg_content.replace("id=\"current_streak\">0", f"id=\"current_streak\">{stats['current_streak']}")
+    svg_content = svg_content.replace("id=\"longest_streak\">0", f"id=\"longest_streak\">{stats['longest_streak']}")
 
-def generate_image(stats, languages):
-    # Set up image dimensions and colors
-    img_width, img_height = 800, 400
-    background_color = "#1E1E1E"  # Dark theme background
-    text_color = "#FFFFFF"        # White text
-    green_color = "#4CAF50"       # Green color for contributions and longest streak
-    orange_color = "#FFA500"      # Orange color for current streak
+    # Build languages text block
+    languages_text = ""
+    for lang, percent in languages.items():
+        languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
+    svg_content = svg_content.replace("id=\"top_languages\" y=\"0\">", f"id=\"top_languages\" y=\"0\">{languages_text}")
 
-    img = Image.new("RGB", (img_width, img_height), color=background_color)
-    draw = ImageDraw.Draw(img)
+    # Save the updated SVG
+    with open("stats_board.svg", "w") as file:
+        file.write(svg_content)
 
-    # Load fonts (use any custom font if available)
-    title_font = ImageFont.load_default()
-    large_font = ImageFont.truetype("arialbd.ttf", 36)  # Bold font for numbers
-    small_font = ImageFont.truetype("arial.ttf", 20)
-
-    # Define positions for each column
-    x_positions = [img_width // 6, img_width // 2, img_width * 5 // 6]
-    y_position = 60
-
-    # Draw Total Contributions
-    draw.text((x_positions[0], y_position), f"{stats['total_contributions']}", fill=green_color, font=large_font, anchor="ms")
-    draw.text((x_positions[0], y_position + 40), "Total Contributions", fill=text_color, font=small_font, anchor="ms")
-    draw.text((x_positions[0], y_position + 70), "Oct 3, 2023 - Present", fill=text_color, font=small_font, anchor="ms")
-
-    # Draw Current Streak with Flame Icon
-    flame_icon = "🔥"  # You can replace this with an image if desired
-    draw.text((x_positions[1], y_position - 20), flame_icon, fill=orange_color, font=large_font, anchor="ms")
-    draw.text((x_positions[1], y_position), f"{stats['current_streak']}", fill=orange_color, font=large_font, anchor="ms")
-    draw.text((x_positions[1], y_position + 40), "Current Streak", fill=text_color, font=small_font, anchor="ms")
-    draw.text((x_positions[1], y_position + 70), "Sep 27 - Nov 19", fill=text_color, font=small_font, anchor="ms")
-
-    # Draw Longest Streak
-    draw.text((x_positions[2], y_position), f"{stats['longest_streak']}", fill=green_color, font=large_font, anchor="ms")
-    draw.text((x_positions[2], y_position + 40), "Longest Streak", fill=text_color, font=small_font, anchor="ms")
-    draw.text((x_positions[2], y_position + 70), "Sep 27 - Nov 19", fill=text_color, font=small_font, anchor="ms")
-
-    # Draw Exclusion Note at the Bottom
-    exclusion_note = "* Excluding Sun, Sat"
-    draw.text((img_width // 2, img_height - 30), exclusion_note, fill=text_color, font=small_font, anchor="ms")
-
-    # Save the image
-    img.save("stats_board.png")
-
-# Main function to fetch data and create the image
+# Main function to fetch data and update the SVG
 def main():
     stats = fetch_contributions()
     languages = fetch_languages()
-    generate_image(stats, languages)
+    update_svg(stats, languages)
 
-# Run the main function
 if __name__ == "__main__":
     main()
