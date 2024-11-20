@@ -1,6 +1,6 @@
 import requests
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Your GitHub username
 github_username = "Willpatpost"
@@ -33,13 +33,21 @@ def fetch_contributions():
     response = requests.post(url, json={"query": query}, headers=headers)
     data = response.json()
 
+    # Check for errors in the response
+    if "errors" in data:
+        print("Error fetching contributions:", data["errors"])
+        return {"total_contributions": 0, "current_streak": 0, "longest_streak": 0}
+
     contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
     # Initialize counters for current and longest streaks
-    current_streak, longest_streak = 0, 0
+    total_contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"]
+    current_streak = 0
+    longest_streak = 0
     today = datetime.now().date()
-    in_streak = False
+    streak_active = True
 
+    # Calculate current and longest streaks
     for week in reversed(contributions):
         for day in reversed(week["contributionDays"]):
             date = datetime.strptime(day["date"], "%Y-%m-%d").date()
@@ -47,20 +55,22 @@ def fetch_contributions():
 
             if date <= today:
                 if contribution_count > 0:
-                    current_streak += 1
+                    if streak_active:
+                        current_streak += 1
                     longest_streak = max(longest_streak, current_streak)
-                    in_streak = True
                 else:
-                    in_streak = False
+                    streak_active = False
                     current_streak = 0
 
-    return {
-        "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
+    stats = {
+        "total_contributions": total_contributions,
         "current_streak": current_streak,
         "longest_streak": longest_streak
     }
+    print("Fetched Stats:", stats)  # Debugging line
+    return stats
 
-# Fetch top languages
+# Fetch top languages used
 def fetch_languages():
     languages = {}
     page = 1
@@ -70,6 +80,12 @@ def fetch_languages():
         url = f"https://api.github.com/users/{github_username}/repos?page={page}&per_page=100"
         response = requests.get(url, headers=headers)
         repos = response.json()
+
+        # Check for response errors
+        if isinstance(repos, dict) and "message" in repos:
+            print("Error fetching languages:", repos["message"])
+            return {}
+
         if not repos:
             break
         for repo in repos:
@@ -79,13 +95,15 @@ def fetch_languages():
                 languages[lang] = languages.get(lang, 0) + bytes
         page += 1
 
+    # Calculate percentages and filter languages
     total_bytes = sum(languages.values())
     filtered_languages = {lang: bytes for lang, bytes in languages.items() if (bytes / total_bytes) * 100 < exclusion_threshold}
 
-    new_total_bytes = sum(filtered_languages.values())
+    # Calculate top 5 languages
     top_languages = sorted(filtered_languages.items(), key=lambda x: x[1], reverse=True)[:5]
-    top_languages = {lang: (bytes / new_total_bytes) * 100 for lang, bytes in top_languages}
+    top_languages = {lang: (bytes / total_bytes) * 100 for lang, bytes in top_languages}
     
+    print("Fetched Languages:", top_languages)  # Debugging line
     return top_languages
 
 # Update the SVG template with stats
@@ -98,7 +116,7 @@ def update_svg(stats, languages):
     svg_content = svg_content.replace("id=\"current_streak\">0", f"id=\"current_streak\">{stats['current_streak']}")
     svg_content = svg_content.replace("id=\"longest_streak\">0", f"id=\"longest_streak\">{stats['longest_streak']}")
 
-    # Build languages text block
+    # Format top languages text block
     languages_text = ""
     for lang, percent in languages.items():
         languages_text += f"<tspan x=\"0\" dy=\"1.2em\">{lang}: {percent:.2f}%</tspan>"
