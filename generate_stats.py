@@ -37,10 +37,10 @@ def fetch_contributions():
     contributions = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
 
     # Initialize counters for current and longest streaks
-    current_streak, longest_streak = 0, 0
+    current_streak = 0
+    longest_streak = 0
+    ongoing_streak = True  # Flag to track the ongoing streak
     today = datetime.now().date()
-    in_streak = False
-    consecutive_days = 0  # To track consecutive days including weekends
 
     # Loop through contribution days in reverse order
     for week in reversed(contributions):
@@ -50,23 +50,16 @@ def fetch_contributions():
 
             # Only consider days up to today
             if date <= today:
-                # Check if the day is a weekend
-                is_weekend = date.weekday() >= 5
-
                 if contribution_count > 0:
-                    # If there's a contribution, continue the streak
-                    current_streak += 1
+                    # If contributions exist, continue the streak
+                    if ongoing_streak:
+                        current_streak += 1
                     longest_streak = max(longest_streak, current_streak)
-                    consecutive_days = 0  # Reset consecutive days gap counter
-                    in_streak = True
-                elif is_weekend:
-                    # If it's a weekend without contributions, skip it
-                    consecutive_days += 1
                 else:
-                    # If it's a weekday without contributions, break the streak
-                    in_streak = False
-                    current_streak = 0
-                    consecutive_days = 0  # Reset the gap counter for weekdays
+                    # If no contributions and it’s not the weekend, end the current streak
+                    if date.weekday() < 5:  # Skip weekends
+                        ongoing_streak = False
+                        current_streak = 0
 
     return {
         "total_contributions": data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"],
