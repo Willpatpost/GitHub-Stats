@@ -67,7 +67,7 @@ def fetch_contributions():
         "current_streak": current_streak,
         "longest_streak": longest_streak
     }
-    print("Fetched Stats:", stats)  # Debugging line
+    print("Fetched Stats for Debug:", stats)  # Debugging line
     return stats
 
 # Fetch top languages used
