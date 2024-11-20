@@ -4,17 +4,18 @@ require('dotenv').config();
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
-const exclusionThreshold = 90.0;  // Exclude languages that take up more than 90%
+const exclusionThreshold = 90.0; // Exclude languages that take up more than 90%
 
 async function fetchFromGitHub(query) {
   const response = await fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query })
+    body: JSON.stringify({ query }),
   });
+
   const data = await response.json();
   if (data.errors) {
     console.error("GitHub API Error:", data.errors);
@@ -41,6 +42,7 @@ async function fetchContributions() {
       }
     }
   `;
+
   const data = await fetchFromGitHub(query);
   const contributions = data.user.contributionsCollection.contributionCalendar;
 
@@ -48,37 +50,43 @@ async function fetchContributions() {
   let currentStreak = 0;
   let longestStreak = 0;
   let today = new Date().toISOString().split('T')[0];
-  let inCurrentStreak = false;
-  
-  contributions.weeks.reverse().forEach(week => {
-    week.contributionDays.reverse().forEach(day => {
+  let lastContributedDate = null;
+
+  contributions.weeks.reverse().forEach((week) => {
+    week.contributionDays.reverse().forEach((day) => {
       const date = day.date;
       const count = day.contributionCount;
-  
+
       // Check if the current day is a weekend
-      const isWeekend = (new Date(date).getDay() === 6 || new Date(date).getDay() === 0);
-  
-      if (date <= today) {  // Process only dates up to today
-        if (count > 0 || isWeekend) {  // Count contributions or skip weekends
-          if (inCurrentStreak) {
-            currentStreak++; // Extend the streak
+      const isWeekend = new Date(date).getDay() === 6 || new Date(date).getDay() === 0;
+
+      if (date <= today) {
+        if (count > 0 || (isWeekend && (!lastContributedDate || isNextDay(lastContributedDate, date)))) {
+          // Extend the streak if contributions or valid weekend
+          if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
+            currentStreak++;
           } else {
-            inCurrentStreak = true;
-            currentStreak = 1; // Start a new streak
+            currentStreak = 1; // Restart streak
           }
+          lastContributedDate = date;
           longestStreak = Math.max(longestStreak, currentStreak);
-        } else {  // Day with zero contributions (not a weekend)
-          if (inCurrentStreak) {
-            // Current streak ends only after the most recent streak day
-            inCurrentStreak = false;
-          }
+        } else {
+          // Reset current streak only if contributions stop on a weekday
+          currentStreak = 0;
+          lastContributedDate = null;
         }
       }
-      console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}, InCurrentStreak: ${inCurrentStreak}`);
     });
   });
 
   return { totalContributions, currentStreak, longestStreak };
+}
+
+// Helper function to check if two dates are consecutive
+function isNextDay(previousDate, currentDate) {
+  const prev = new Date(previousDate);
+  const curr = new Date(currentDate);
+  return (curr - prev) / (1000 * 60 * 60 * 24) <= 1; // Difference in days
 }
 
 async function fetchTopLanguages() {
@@ -88,7 +96,7 @@ async function fetchTopLanguages() {
   while (true) {
     const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100`;
     const response = await fetch(url, {
-      headers: { "Authorization": `Bearer ${token}` }
+      headers: { "Authorization": `Bearer ${token}` },
     });
     const repos = await response.json();
     if (!repos.length) break;
@@ -96,7 +104,7 @@ async function fetchTopLanguages() {
     for (const repo of repos) {
       const langUrl = repo.languages_url;
       const langResponse = await fetch(langUrl, {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${token}` },
       });
       const langData = await langResponse.json();
       for (const [lang, bytes] of Object.entries(langData)) {
@@ -165,4 +173,4 @@ async function generateSVG() {
 }
 
 // Main function
-generateSVG().catch(error => console.error("Error generating SVG:", error));
+generateSVG().catch((error) => console.error("Error generating SVG:", error));
