@@ -48,7 +48,7 @@ async function fetchContributions() {
   let currentStreak = 0;
   let longestStreak = 0;
   let today = new Date().toISOString().split('T')[0];
-  let lastDayHadContributions = false;
+  let inCurrentStreak = false;
   
   contributions.weeks.reverse().forEach(week => {
     week.contributionDays.reverse().forEach(day => {
@@ -60,21 +60,21 @@ async function fetchContributions() {
   
       if (date <= today) {  // Process only dates up to today
         if (count > 0 || isWeekend) {  // Count contributions or skip weekends
-          if (lastDayHadContributions) {
+          if (inCurrentStreak) {
             currentStreak++; // Extend the streak
           } else {
+            inCurrentStreak = true;
             currentStreak = 1; // Start a new streak
           }
           longestStreak = Math.max(longestStreak, currentStreak);
-          lastDayHadContributions = true;
         } else {  // Day with zero contributions (not a weekend)
-          if (lastDayHadContributions) {
+          if (inCurrentStreak) {
             // Current streak ends only after the most recent streak day
-            lastDayHadContributions = false;
+            inCurrentStreak = false;
           }
         }
       }
-      console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}`);
+      console.log(`Date: ${date}, Count: ${count}, Current: ${currentStreak}, Longest: ${longestStreak}, InCurrentStreak: ${inCurrentStreak}`);
     });
   });
 
