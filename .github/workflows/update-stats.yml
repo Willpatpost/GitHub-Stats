@@ -34,6 +34,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add stats_board.svg  # Add this line to stage the SVG file
+          git add -f stats_board.svg  # Use -f to force add the SVG file
           git commit -m "Update stats board SVG"
           git push
+
+      - name: Wait for file update
+        run: sleep 2
