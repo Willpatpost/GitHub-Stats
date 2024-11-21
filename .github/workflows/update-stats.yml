@@ -28,6 +28,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
         run: node generateCard.js
 
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Switch to main branch
         run: |
           git fetch origin main
@@ -38,17 +43,15 @@ jobs:
         run: |
           git merge js || echo "Already up to date."
 
-      - name: Ensure `stats_board.svg` is tracked
+      - name: Stage and Add SVG
         run: |
           git add stats_board.svg
           git status
 
-      - name: Commit and push the updated SVG
+      - name: Commit and Push the Updated SVG
         env:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --cached --quiet; then
             echo "No changes detected in stats_board.svg. Skipping commit.";
           else
