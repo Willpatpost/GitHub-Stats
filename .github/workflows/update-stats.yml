@@ -2,7 +2,7 @@ name: Update GitHub Stats
 
 on:
   schedule:
-    - cron: '*/60 * * * *'  # Runs every hour
+    - cron: '0 * * * *'  # Runs every hour
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -11,35 +11,50 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/checkout@v3
         with:
-          python-version: '3.x'
+          fetch-depth: 0 # Fetch all branches
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
       - name: Install dependencies
-        run: |
-          python -m pip install requests Pillow
+        run: npm install
 
       - name: Run the stats generation script
         env:
           GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
-        run: |
-          python generate_stats.py
+        run: node generateCard.js
 
-      - name: Check Git status before commit
-        run: git status
-      
-      - name: Commit and push the updated SVG
-        env:
-          GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
+      - name: Configure Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f stats_board.svg
-          git commit -m "Update stats board SVG with new data" || echo "No changes to commit"
-          git push
 
-      - name: Wait for file update
-        run: sleep 2
+      - name: Switch to main branch
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull origin main
+
+      - name: Merge js into main
+        run: |
+          git merge js || echo "Already up to date."
+
+      - name: Stage and Add SVG
+        run: |
+          git add stats_board.svg
+          git status
+
+      - name: Commit and Push the Updated SVG
+        env:
+          GITHUB_TOKEN: ${{ secrets.SECURING_TOKEN }}
+        run: |
+          if git diff --cached --quiet; then
+            echo "No changes detected in stats_board.svg. Skipping commit.";
+          else
+            git commit -m "Update stats board SVG with new data"
+            git push origin main
+          fi

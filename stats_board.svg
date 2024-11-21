@@ -1,39 +1,36 @@
-<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .title { font: bold 14px sans-serif; fill: #FFD700; }
-    .stat { font: bold 24px sans-serif; fill: #FFFFFF; }
-    .label { font: 12px sans-serif; fill: #AAAAAA; }
-    .section { text-anchor: middle; }
-  </style>
 
-  <!-- Background -->
-  <rect width="100%" height="100%" fill="#1E1E1E" rx="10"/>
+    <svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .title { font: bold 14px sans-serif; fill: #FFD700; }
+        .stat { font: bold 24px sans-serif; fill: #FFFFFF; }
+        .label { font: 12px sans-serif; fill: #AAAAAA; }
+        .section { text-anchor: middle; }
+      </style>
 
-  <!-- Total Contributions Section -->
-  <g class="section" transform="translate(150, 100)">
-    <text class="stat" id="total_contributions" y="-10">0</text>
-    <text class="label" y="20">Total Contributions</text>
-  </g>
+      <rect width="100%" height="100%" fill="#1E1E1E" rx="10"/>
 
-  <!-- Current Streak Section -->
-  <g class="section" transform="translate(350, 100)">
-    <text class="stat" id="current_streak" y="-10">0</text>
-    <text class="label" y="20">Current Streak</text>
-  </g>
+      <g class="section" transform="translate(150, 100)">
+        <text class="stat" y="-10">1148</text>
+        <text class="label" y="20">Total Contributions</text>
+      </g>
 
-  <!-- Longest Streak Section -->
-  <g class="section" transform="translate(550, 100)">
-    <text class="stat" id="longest_streak" y="-10">0</text>
-    <text class="label" y="20">Longest Streak</text>
-  </g>
+      <g class="section" transform="translate(350, 100)">
+        <text class="stat" y="-10">1</text>
+        <text class="label" y="20">Current Streak</text>
+      </g>
 
-  <!-- Top Languages Used Section -->
-  <g class="section" transform="translate(650, 100)">
-    <text class="title" x="0" y="-30">Top Languages Used</text>
-    <text class="label" id="top_languages" x="0" y="0"><tspan x="0" dy="1.2em">Python: 1.05%</tspan><tspan x="0" dy="1.2em">JavaScript: 0.89%</tspan><tspan x="0" dy="1.2em">HTML: 0.57%</tspan><tspan x="0" dy="1.2em">CSS: 0.51%</tspan><tspan x="0" dy="1.2em">Java: 0.22%</tspan>
-      <!-- Language stats will be dynamically inserted here -->
-    </text>
-  </g>
-</svg>
+      <g class="section" transform="translate(550, 100)">
+        <text class="stat" y="-10">55</text>
+        <text class="label" y="20">Longest Streak</text>
+      </g>
 
+<<<<<<< HEAD
 <!-- Last updated: 2024-11-20 23:16:57 -->
+=======
+      <g class="section" transform="translate(750, 100)">
+        <text class="title" x="0" y="-30">Top Languages Used</text>
+        <text class="label" x="0" y="0"><tspan x="0" dy="1.2em">Python: 30.10%</tspan><tspan x="0" dy="1.2em">JavaScript: 25.35%</tspan><tspan x="0" dy="1.2em">HTML: 16.19%</tspan><tspan x="0" dy="1.2em">CSS: 14.69%</tspan><tspan x="0" dy="1.2em">Java: 6.42%</tspan></text>
+      </g>
+    </svg>
+  
+>>>>>>> js
