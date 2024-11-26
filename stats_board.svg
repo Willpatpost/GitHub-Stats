@@ -10,7 +10,7 @@
       <rect width="100%" height="100%" fill="#1E1E1E" rx="10"/>
 
       <g class="section" transform="translate(150, 100)">
-        <text class="stat" y="-10">1180</text>
+        <text class="stat" y="-10">1181</text>
         <text class="label" y="20">Total Contributions</text>
       </g>
 
@@ -20,13 +20,13 @@
       </g>
 
       <g class="section" transform="translate(550, 100)">
-        <text class="stat" y="-10">60</text>
+        <text class="stat" y="-10">61</text>
         <text class="label" y="20">Longest Streak</text>
       </g>
 
       <g class="section" transform="translate(750, 100)">
         <text class="title" x="0" y="-30">Top Languages Used</text>
-        <text class="label" x="0" y="0"><tspan x="0" dy="1.2em">Python: 37.91%</tspan><tspan x="0" dy="1.2em">JavaScript: 22.44%</tspan><tspan x="0" dy="1.2em">HTML: 14.42%</tspan><tspan x="0" dy="1.2em">CSS: 13.08%</tspan><tspan x="0" dy="1.2em">Java: 5.71%</tspan></text>
+        <text class="label" x="0" y="0"><tspan x="0" dy="1.2em">Python: 39.40%</tspan><tspan x="0" dy="1.2em">JavaScript: 21.90%</tspan><tspan x="0" dy="1.2em">HTML: 14.07%</tspan><tspan x="0" dy="1.2em">CSS: 12.76%</tspan><tspan x="0" dy="1.2em">Java: 5.58%</tspan></text>
       </g>
     </svg>
   
