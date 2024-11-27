@@ -10,7 +10,7 @@
       <rect width="100%" height="100%" fill="#1E1E1E" rx="10"/>
 
       <g class="section" transform="translate(150, 100)">
-        <text class="stat" y="-10">1182</text>
+        <text class="stat" y="-10">1183</text>
         <text class="label" y="20">Total Contributions</text>
       </g>
 
@@ -20,7 +20,7 @@
       </g>
 
       <g class="section" transform="translate(550, 100)">
-        <text class="stat" y="-10">61</text>
+        <text class="stat" y="-10">62</text>
         <text class="label" y="20">Longest Streak</text>
       </g>
 
