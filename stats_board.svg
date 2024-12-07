@@ -54,6 +54,18 @@
 
   <!-- Section 2: Current Streak -->
   <g transform="translate(300, 100)">
+    <defs>
+      <!-- Mask to create a hole at the top of the ring -->
+      <mask id="ringMask">
+        <rect x="-50" y="-50" width="100" height="100" fill="white" />
+        <circle cx="0" cy="-20" r="40" fill="black" />
+        <ellipse cx="0" cy="-50" rx="20" ry="15" fill="white" />
+      </mask>
+    </defs>
+    <!-- Ring with a hole -->
+    <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5"
+            mask="url(#ringMask)" style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s" />
+    <!-- Current streak number -->
     <text class="stat" y="-12" text-anchor="middle" style="animation: currstreak 0.6s linear forwards">
       1
     </text>
@@ -63,9 +75,6 @@
     <text class="label" y="70" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
       Dec 1 - Dec 7
     </text>
-    <!-- Ring around the number -->
-    <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5"
-            style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s" />
     <!-- Fire icon -->
     <g transform="translate(0, -70)" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
