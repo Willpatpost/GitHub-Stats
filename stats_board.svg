@@ -24,7 +24,7 @@
   <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
 
   <!-- Section 1: Total Contributions -->
-  <g class="section" transform="translate(150, 125)">
+  <g class="section" transform="translate(100, 125)">
     <text class="stat shadow" y="-10">1271</text>
     <text class="stat" y="-12">1271</text>
     <text class="label shadow" y="25">Total Contributions</text>
@@ -32,7 +32,7 @@
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g class="section" transform="translate(350, 125)">
+  <g class="section" transform="translate(300, 125)">
     <text class="stat shadow" y="-10">1</text>
     <text class="stat" y="-12">1</text>
     <text class="label shadow" y="25">Current Streak</text>
@@ -40,7 +40,7 @@
   </g>
 
   <!-- Section 3: Longest Streak -->
-  <g class="section" transform="translate(550, 125)">
+  <g class="section" transform="translate(500, 125)">
     <text class="stat shadow" y="-10">72</text>
     <text class="stat" y="-12">72</text>
     <text class="label shadow" y="25">Longest Streak</text>
@@ -48,7 +48,7 @@
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g class="section" transform="translate(750, 80)">
+  <g class="section" transform="translate(700, 80)">
     <text class="title" x="0" y="-20">Top Languages Used</text>
     <text class="label" x="0" y="0">
       <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
