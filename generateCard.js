@@ -232,7 +232,7 @@ async function generateSVG() {
   </defs>
 
   <!-- Fire icon -->
-  <g transform="translate(300, 10)" stroke-opacity="0" 
+  <g transform="translate(300, 50)" stroke-opacity="0" 
      style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
     <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
     <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
