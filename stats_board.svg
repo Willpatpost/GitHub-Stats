@@ -48,7 +48,7 @@
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g class="section" transform="translate(680, 80)">
+  <g class="section" transform="translate(675, 80)">
     <text class="title" x="0" y="-20">Top Languages Used</text>
     <text class="label" x="0" y="0">
       <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
