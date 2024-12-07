@@ -183,7 +183,7 @@ async function generateSVG() {
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
     <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-      1271
+      ${totalContributions}
     </text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
@@ -196,7 +196,7 @@ async function generateSVG() {
     <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
           stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-      ${totalContributions}
+      ${currentStreak}
     </text>
   </g>
 
@@ -205,7 +205,7 @@ async function generateSVG() {
     <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
           stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="14px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      ${currentStreak}
+      Current Streak
     </text>
   </g>
 
@@ -214,7 +214,7 @@ async function generateSVG() {
     <text x="0" y="21" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
           stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="400" 
           font-size="12px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Dec 1 - Dec 7
+      Forever
     </text>
   </g>
 
