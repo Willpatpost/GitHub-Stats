@@ -196,7 +196,7 @@ async function generateSVG() {
     <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
           stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-      1
+      ${totalContributions}
     </text>
   </g>
 
@@ -205,7 +205,7 @@ async function generateSVG() {
     <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
           stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="14px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Current Streak
+      ${currentStreak}
     </text>
   </g>
 
@@ -251,9 +251,7 @@ async function generateSVG() {
 
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
-    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
-      72
-    </text>
+    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">${longestStreak}</text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
       Longest Streak
     </text>
@@ -262,13 +260,7 @@ async function generateSVG() {
   <!-- Section 4: Top Languages -->
   <g transform="translate(700, 80)">
     <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">Top Languages Used</text>
-    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-      <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
-      <tspan x="0" dy="1.5em">JavaScript: 18.57%</tspan>
-      <tspan x="0" dy="1.5em">HTML: 11.93%</tspan>
-      <tspan x="0" dy="1.5em">CSS: 10.82%</tspan>
-      <tspan x="0" dy="1.5em">Java: 4.73%</tspan>
-    </text>
+    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">${languagesText}</text>
   </g>
 </svg>
   `;
