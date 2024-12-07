@@ -1,23 +1,32 @@
-<svg width="800" height="250" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     style="isolation: isolate" viewBox="0 0 800 250" width="800px" height="250px">
   <style>
+    @keyframes fadein {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes currstreak {
+      0% { font-size: 3px; opacity: 0.2; }
+      80% { font-size: 34px; opacity: 1; }
+      100% { font-size: 28px; opacity: 1; }
+    }
+
     .title {
       font: bold 16px sans-serif;
       fill: #FFD700;
     }
+
     .stat {
       font: bold 28px sans-serif;
       fill: #FFFFFF;
     }
+
     .label {
       font: 14px sans-serif;
       fill: #AAAAAA;
     }
-    .section {
-      text-anchor: middle;
-    }
-    .shadow {
-      fill: #00000033; /* Adds a subtle shadow */
-    }
+
     .divider {
       stroke: #555555;
       stroke-width: 2;
@@ -34,41 +43,45 @@
   <line x1="600" y1="25" x2="600" y2="225" class="divider" />
 
   <!-- Section 1: Total Contributions -->
-  <g class="section" transform="translate(100, 125)">
-    <text class="stat shadow" y="-10">1271</text>
-    <text class="stat" y="-12">1271</text>
-    <text class="label shadow" y="25">Total Contributions</text>
-    <text class="label" y="23">Total Contributions</text>
+  <g transform="translate(100, 100)">
+    <text class="stat" y="-12" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
+      1271
+    </text>
+    <text class="label" y="23" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
+      Total Contributions
+    </text>
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g class="section" transform="translate(300, 125)">
-    <text class="stat shadow" y="-10">1</text>
-    <text class="stat" y="-12">1</text>
-    <text class="label shadow" y="25">Current Streak</text>
-    <text class="label" y="23">Current Streak</text>
-    <!-- Flame Icon -->
-    <g transform="translate(-40, -80) scale(1.5)">
-      <path
-        d="M15.9,12.4C13.7,9.2,12.6,6.1,14.3,2.2c0,0-6.1,2.8-8.1,8.3c-1.8,5.1,0.6,9.9,3.8,11.9c-0.8-4.3,0.9-7.5,3.4-9.7 C14.5,10.9,16.6,13.6,15.9,12.4z"
-        fill="#FF4500"
-      />
-      <circle cx="12" cy="20" r="3" fill="#FFA500" />
-    </g>
+  <g transform="translate(300, 100)">
+    <text class="stat" y="-12" text-anchor="middle" style="animation: currstreak 0.6s linear forwards">
+      1
+    </text>
+    <text class="label" y="23" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+      Current Streak
+    </text>
+    <text class="label" y="45" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+      Dec 1 - Dec 7
+    </text>
+    <!-- Ring around the number -->
+    <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5"
+            style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s" />
   </g>
 
   <!-- Section 3: Longest Streak -->
-  <g class="section" transform="translate(500, 125)">
-    <text class="stat shadow" y="-10">72</text>
-    <text class="stat" y="-12">72</text>
-    <text class="label shadow" y="25">Longest Streak</text>
-    <text class="label" y="23">Longest Streak</text>
+  <g transform="translate(500, 100)">
+    <text class="stat" y="-12" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
+      72
+    </text>
+    <text class="label" y="23" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
+      Longest Streak
+    </text>
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g class="section" transform="translate(700, 80)">
-    <text class="title" x="0" y="-20">Top Languages Used</text>
-    <text class="label" x="0" y="0">
+  <g transform="translate(700, 80)">
+    <text class="title" x="0" y="-20" text-anchor="middle">Top Languages Used</text>
+    <text class="label" text-anchor="middle">
       <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
       <tspan x="0" dy="1.5em">JavaScript: 18.57%</tspan>
       <tspan x="0" dy="1.5em">HTML: 11.93%</tspan>
