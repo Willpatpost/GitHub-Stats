@@ -18,10 +18,20 @@
     .shadow {
       fill: #00000033; /* Adds a subtle shadow */
     }
+    .divider {
+      stroke: #555555;
+      stroke-width: 2;
+      stroke-dasharray: 4; /* Dashed line style */
+    }
   </style>
 
   <!-- Background -->
   <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
+
+  <!-- Divider Lines -->
+  <line x1="200" y1="25" x2="200" y2="225" class="divider" />
+  <line x1="400" y1="25" x2="400" y2="225" class="divider" />
+  <line x1="600" y1="25" x2="600" y2="225" class="divider" />
 
   <!-- Section 1: Total Contributions -->
   <g class="section" transform="translate(100, 125)">
@@ -48,7 +58,7 @@
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g class="section" transform="translate(675, 80)">
+  <g class="section" transform="translate(700, 80)">
     <text class="title" x="0" y="-20">Top Languages Used</text>
     <text class="label" x="0" y="0">
       <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
