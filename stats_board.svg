@@ -123,8 +123,8 @@
 
   <!-- Section 4: Top Languages -->
   <g transform="translate(700, 80)">
-    <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">>Top Languages Used</text>
-    <text class="label" text-anchor="middle">
+    <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">Top Languages Used</text>
+    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
       <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
       <tspan x="0" dy="1.5em">JavaScript: 18.57%</tspan>
       <tspan x="0" dy="1.5em">HTML: 11.93%</tspan>
