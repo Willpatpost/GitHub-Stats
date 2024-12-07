@@ -1,32 +1,61 @@
+<svg width="800" height="250" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title {
+      font: bold 16px sans-serif;
+      fill: #FFD700;
+    }
+    .stat {
+      font: bold 28px sans-serif;
+      fill: #FFFFFF;
+    }
+    .label {
+      font: 14px sans-serif;
+      fill: #AAAAAA;
+    }
+    .section {
+      text-anchor: middle;
+    }
+    .shadow {
+      fill: #00000033; /* Adds a subtle shadow */
+    }
+  </style>
 
-    <svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
-      <style>
-        .title { font: bold 14px sans-serif; fill: #FFD700; }
-        .stat { font: bold 24px sans-serif; fill: #FFFFFF; }
-        .label { font: 12px sans-serif; fill: #AAAAAA; }
-        .section { text-anchor: middle; }
-      </style>
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
 
-      <rect width="100%" height="100%" fill="#1E1E1E" rx="10"/>
+  <!-- Section 1: Total Contributions -->
+  <g class="section" transform="translate(150, 125)">
+    <text class="stat shadow" y="-10">1271</text>
+    <text class="stat" y="-12">1271</text>
+    <text class="label shadow" y="25">Total Contributions</text>
+    <text class="label" y="23">Total Contributions</text>
+  </g>
 
-      <g class="section" transform="translate(150, 100)">
-        <text class="stat" y="-10">1271</text>
-        <text class="label" y="20">Total Contributions</text>
-      </g>
+  <!-- Section 2: Current Streak -->
+  <g class="section" transform="translate(350, 125)">
+    <text class="stat shadow" y="-10">1</text>
+    <text class="stat" y="-12">1</text>
+    <text class="label shadow" y="25">Current Streak</text>
+    <text class="label" y="23">Current Streak</text>
+  </g>
 
-      <g class="section" transform="translate(350, 100)">
-        <text class="stat" y="-10">1</text>
-        <text class="label" y="20">Current Streak</text>
-      </g>
+  <!-- Section 3: Longest Streak -->
+  <g class="section" transform="translate(550, 125)">
+    <text class="stat shadow" y="-10">72</text>
+    <text class="stat" y="-12">72</text>
+    <text class="label shadow" y="25">Longest Streak</text>
+    <text class="label" y="23">Longest Streak</text>
+  </g>
 
-      <g class="section" transform="translate(550, 100)">
-        <text class="stat" y="-10">72</text>
-        <text class="label" y="20">Longest Streak</text>
-      </g>
-
-      <g class="section" transform="translate(750, 100)">
-        <text class="title" x="0" y="-30">Top Languages Used</text>
-        <text class="label" x="0" y="0"><tspan x="0" dy="1.2em">Python: 48.63%</tspan><tspan x="0" dy="1.2em">JavaScript: 18.57%</tspan><tspan x="0" dy="1.2em">HTML: 11.93%</tspan><tspan x="0" dy="1.2em">CSS: 10.82%</tspan><tspan x="0" dy="1.2em">Java: 4.73%</tspan></text>
-      </g>
-    </svg>
-  
+  <!-- Section 4: Top Languages -->
+  <g class="section" transform="translate(750, 80)">
+    <text class="title" x="0" y="-20">Top Languages Used</text>
+    <text class="label" x="0" y="0">
+      <tspan x="0" dy="1.5em">Python: 48.63%</tspan>
+      <tspan x="0" dy="1.5em">JavaScript: 18.57%</tspan>
+      <tspan x="0" dy="1.5em">HTML: 11.93%</tspan>
+      <tspan x="0" dy="1.5em">CSS: 10.82%</tspan>
+      <tspan x="0" dy="1.5em">Java: 4.73%</tspan>
+    </text>
+  </g>
+</svg>
