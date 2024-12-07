@@ -47,6 +47,14 @@
     <text class="stat" y="-12">1</text>
     <text class="label shadow" y="25">Current Streak</text>
     <text class="label" y="23">Current Streak</text>
+    <!-- Flame Icon -->
+    <g transform="translate(-40, -80) scale(1.5)">
+      <path
+        d="M15.9,12.4C13.7,9.2,12.6,6.1,14.3,2.2c0,0-6.1,2.8-8.1,8.3c-1.8,5.1,0.6,9.9,3.8,11.9c-0.8-4.3,0.9-7.5,3.4-9.7 C14.5,10.9,16.6,13.6,15.9,12.4z"
+        fill="#FF4500"
+      />
+      <circle cx="12" cy="20" r="3" fill="#FFA500" />
+    </g>
   </g>
 
   <!-- Section 3: Longest Streak -->
