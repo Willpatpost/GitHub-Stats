@@ -57,10 +57,10 @@
     <text class="stat" y="-12" text-anchor="middle" style="animation: currstreak 0.6s linear forwards">
       1
     </text>
-    <text class="label" y="23" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+    <text class="label" y="50" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
       Current Streak
     </text>
-    <text class="label" y="45" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+    <text class="label" y="70" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
       Dec 1 - Dec 7
     </text>
     <!-- Ring around the number -->
