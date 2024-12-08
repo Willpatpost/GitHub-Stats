@@ -114,7 +114,7 @@
 
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
-    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">72</text>
+    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">73</text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
       Longest Streak
     </text>
