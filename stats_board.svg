@@ -46,7 +46,7 @@
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
     <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-      1298
+      1299
     </text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
