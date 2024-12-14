@@ -57,51 +57,49 @@ async function fetchContributions() {
   const contributions = data.user.contributionsCollection.contributionCalendar;
 
   const totalContributions = contributions.totalContributions;
-  let currentStreak = 0;
-  let longestStreak = 0;
+  const weeks = contributions.weeks;
   const today = new Date().toISOString().split('T')[0];
-  let lastContributedDate = null;
 
-  contributions.weeks.reverse().forEach((week) => {
-    week.contributionDays.reverse().forEach((day) => {
-      const { date, contributionCount } = day;
-
-      // Determine if the day is a weekend
-      const dayOfWeek = new Date(date).getDay();
-      const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
-
-      if (date <= today) {
-        if (
-          contributionCount > 0 ||
-          (isWeekend && (!lastContributedDate || isNextDay(lastContributedDate, date)))
-        ) {
-          // Extend the streak if contributions or valid weekend
-          if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
-            currentStreak++;
-          } else {
-            currentStreak = 1; // Restart streak
-          }
-          lastContributedDate = date;
-          longestStreak = Math.max(longestStreak, currentStreak);
-        } else {
-          // Reset current streak only if contributions stop on a weekday
-          currentStreak = 0;
-          lastContributedDate = null;
-        }
-      }
+  // Create a map of date to contributionCount for quick lookup
+  const contributionMap = {};
+  weeks.forEach(week => {
+    week.contributionDays.forEach(day => {
+      contributionMap[day.date] = day.contributionCount;
     });
   });
 
-  return { totalContributions, currentStreak, longestStreak };
-}
+  // Initialize streak variables
+  let currentStreak = 0;
+  let longestStreak = 0; // Optional: Implement longest streak calculation if needed
 
-// Helper function to check if two dates are consecutive
-function isNextDay(previousDate, currentDate) {
-  const prev = new Date(previousDate);
-  const curr = new Date(currentDate);
-  const diffTime = curr - prev;
-  const diffDays = diffTime / (1000 * 60 * 60 * 24);
-  return diffDays <= 1; // Difference in days
+  // Start from today and iterate backwards
+  let currentDate = new Date(today);
+  while (true) {
+    const dateString = currentDate.toISOString().split('T')[0];
+    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      // Weekend: Do not affect the streak, skip to previous day
+      currentDate.setDate(currentDate.getDate() - 1);
+      continue;
+    }
+
+    const contributions = contributionMap[dateString] || 0;
+
+    if (contributions > 0) {
+      currentStreak++;
+    } else {
+      break; // Streak broken
+    }
+
+    // Move to previous day
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  // Optional: Calculate longest streak by iterating through all days
+  // This requires more complex logic and is not implemented here
+
+  return { totalContributions, currentStreak, longestStreak };
 }
 
 async function fetchTopLanguages() {
