@@ -1,13 +1,10 @@
 {
   "name": "github-stats",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GitHub Stats Board Generation",
   "main": "generateCard.js",
   "scripts": {
     "start": "node generateCard.js"
   },
-  "dependencies": {
-    "node-fetch": "^2.6.1",
-    "dotenv": "^10.0.0"
-  }
+  "dependencies": {}
 }
