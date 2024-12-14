@@ -57,49 +57,69 @@ async function fetchContributions() {
   const contributions = data.user.contributionsCollection.contributionCalendar;
 
   const totalContributions = contributions.totalContributions;
-  const weeks = contributions.weeks;
-  const today = new Date().toISOString().split('T')[0];
-
-  // Create a map of date to contributionCount for quick lookup
-  const contributionMap = {};
-  weeks.forEach(week => {
-    week.contributionDays.forEach(day => {
-      contributionMap[day.date] = day.contributionCount;
-    });
-  });
-
-  // Initialize streak variables
   let currentStreak = 0;
-  let longestStreak = 0; // Optional: Implement longest streak calculation if needed
+  let longestStreak = 0;
+  const today = new Date().toISOString().split('T')[0];
+  let lastContributedDate = null;
 
-  // Start from today and iterate backwards
-  let currentDate = new Date(today);
-  while (true) {
-    const dateString = currentDate.toISOString().split('T')[0];
-    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+  // Iterate over each week and each day in chronological order
+  contributions.weeks
+    .slice() // Create a shallow copy to prevent mutating the original data
+    .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date)) // Sort weeks chronologically
+    .forEach((week) => {
+      week.contributionDays
+        .slice()
+        .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort days chronologically
+        .forEach((day) => {
+          const { date, contributionCount } = day;
 
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      // Weekend: Do not affect the streak, skip to previous day
-      currentDate.setDate(currentDate.getDate() - 1);
-      continue;
-    }
+          if (date > today) return; // Skip future dates
 
-    const contributions = contributionMap[dateString] || 0;
+          const currentDay = new Date(date);
+          const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    if (contributions > 0) {
-      currentStreak++;
-    } else {
-      break; // Streak broken
-    }
+          // Debugging Log (Optional)
+          // console.log(`Processing Date: ${date}, Contribution: ${contributionCount}, Weekend: ${isWeekend}`);
 
-    // Move to previous day
-    currentDate.setDate(currentDate.getDate() - 1);
-  }
-
-  // Optional: Calculate longest streak by iterating through all days
-  // This requires more complex logic and is not implemented here
+          if (contributionCount > 0) {
+            if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
+              currentStreak++;
+              // console.log(`Streak incremented to ${currentStreak}`);
+            } else {
+              currentStreak = 1; // Reset streak
+              // console.log(`Streak reset to ${currentStreak}`);
+            }
+            lastContributedDate = date;
+            longestStreak = Math.max(longestStreak, currentStreak);
+            // console.log(`Longest Streak updated to ${longestStreak}`);
+          } else if (isWeekend) {
+            // No contribution on weekend, but streak continues
+            // console.log(`No contribution on weekend. Streak continues.`);
+            // Do not reset the streak
+          } else {
+            // No contribution on a weekday, reset streak
+            currentStreak = 0;
+            lastContributedDate = null;
+            // console.log(`No contribution on weekday. Streak reset.`);
+          }
+        });
+    });
 
   return { totalContributions, currentStreak, longestStreak };
+}
+
+// Helper function to check if two dates are consecutive
+function isNextDay(previousDate, currentDate) {
+  const prev = new Date(previousDate);
+  const curr = new Date(currentDate);
+
+  // Normalize both dates to UTC midnight
+  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
+  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
+
+  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
+  return diffDays === 1;
 }
 
 async function fetchTopLanguages() {
