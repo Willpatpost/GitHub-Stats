@@ -1,10 +1,14 @@
-const fetch = require('node-fetch');
+// generateCard.js
 const fs = require('fs');
-require('dotenv').config();
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
 const exclusionThreshold = 90.0; // Exclude languages that take up more than 90%
+
+if (!token) {
+  console.error("Error: GITHUB_TOKEN is not defined in the environment variables.");
+  process.exit(1);
+}
 
 async function fetchFromGitHub(query) {
   const response = await fetch("https://api.github.com/graphql", {
@@ -15,6 +19,12 @@ async function fetchFromGitHub(query) {
     },
     body: JSON.stringify({ query }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("GitHub API Error:", errorText);
+    throw new Error("Failed to fetch data from GitHub API.");
+  }
 
   const data = await response.json();
   if (data.errors) {
@@ -46,22 +56,25 @@ async function fetchContributions() {
   const data = await fetchFromGitHub(query);
   const contributions = data.user.contributionsCollection.contributionCalendar;
 
-  let totalContributions = contributions.totalContributions;
+  const totalContributions = contributions.totalContributions;
   let currentStreak = 0;
   let longestStreak = 0;
-  let today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
   let lastContributedDate = null;
 
   contributions.weeks.reverse().forEach((week) => {
     week.contributionDays.reverse().forEach((day) => {
-      const date = day.date;
-      const count = day.contributionCount;
+      const { date, contributionCount } = day;
 
-      // Check if the current day is a weekend
-      const isWeekend = new Date(date).getDay() === 6 || new Date(date).getDay() === 0;
+      // Determine if the day is a weekend
+      const dayOfWeek = new Date(date).getDay();
+      const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
 
       if (date <= today) {
-        if (count > 0 || (isWeekend && (!lastContributedDate || isNextDay(lastContributedDate, date)))) {
+        if (
+          contributionCount > 0 ||
+          (isWeekend && (!lastContributedDate || isNextDay(lastContributedDate, date)))
+        ) {
           // Extend the streak if contributions or valid weekend
           if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
             currentStreak++;
@@ -86,7 +99,9 @@ async function fetchContributions() {
 function isNextDay(previousDate, currentDate) {
   const prev = new Date(previousDate);
   const curr = new Date(currentDate);
-  return (curr - prev) / (1000 * 60 * 60 * 24) <= 1; // Difference in days
+  const diffTime = curr - prev;
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  return diffDays <= 1; // Difference in days
 }
 
 async function fetchTopLanguages() {
@@ -98,6 +113,13 @@ async function fetchTopLanguages() {
     const response = await fetch(url, {
       headers: { "Authorization": `Bearer ${token}` },
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error fetching repositories: ${errorText}`);
+      throw new Error("Failed to fetch repositories from GitHub.");
+    }
+
     const repos = await response.json();
     if (!repos.length) break;
 
@@ -106,6 +128,13 @@ async function fetchTopLanguages() {
       const langResponse = await fetch(langUrl, {
         headers: { "Authorization": `Bearer ${token}` },
       });
+
+      if (!langResponse.ok) {
+        const errorText = await langResponse.text();
+        console.error(`Error fetching languages for repo ${repo.name}: ${errorText}`);
+        continue; // Skip this repo
+      }
+
       const langData = await langResponse.json();
       for (const [lang, bytes] of Object.entries(langData)) {
         languages[lang] = (languages[lang] || 0) + bytes;
@@ -130,10 +159,9 @@ async function generateSVG() {
   const { totalContributions, currentStreak, longestStreak } = await fetchContributions();
   const topLanguages = await fetchTopLanguages();
 
-  let languagesText = "";
-  topLanguages.forEach(({ lang, percent }) => {
-    languagesText += `<tspan x="0" dy="1.2em">${lang}: ${percent.toFixed(2)}%</tspan>`;
-  });
+  const languagesText = topLanguages
+    .map(({ lang, percent }) => `<tspan x="0" dy="1.2em">${lang}: ${percent.toFixed(2)}%</tspan>`)
+    .join('');
 
   const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -190,64 +218,64 @@ async function generateSVG() {
     </text>
   </g>
 
-<!-- Current Streak big number -->
-<g style="isolation: isolate">
-  <g transform="translate(300, 80)">
-    <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
-          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-          font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-      ${currentStreak}
-    </text>
-  </g>
+  <!-- Current Streak big number -->
+  <g style="isolation: isolate">
+    <g transform="translate(300, 80)">
+      <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
+            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
+            font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
+        ${currentStreak}
+      </text>
+    </g>
 
-  <!-- Current Streak label -->
-  <g transform="translate(300, 120)">
-    <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
-          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-          font-size="14px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Current Streak
-    </text>
-  </g>
+    <!-- Current Streak label -->
+    <g transform="translate(300, 120)">
+      <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
+            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
+            font-size="14px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+        Current Streak
+      </text>
+    </g>
 
-  <!-- Current Streak range -->
-  <g transform="translate(300, 150)">
-    <text x="0" y="21" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
-          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="400" 
-          font-size="12px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Forever
-    </text>
-  </g>
+    <!-- Current Streak range -->
+    <g transform="translate(300, 150)">
+      <text x="0" y="21" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
+            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="400" 
+            font-size="12px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+        Forever
+      </text>
+    </g>
 
-  <!-- Ring around number with a mask for the fire -->
-  <g mask="url(#ringMask)">
-    <circle cx="300" cy="60" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
-            style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
-  </g>
-  <defs>
-    <mask id="ringMask">
-      <rect x="-50" y="-50" width="100" height="100" fill="white" />
-      <circle cx="0" cy="-20" r="40" fill="black" />
-      <ellipse cx="0" cy="-50" rx="20" ry="15" fill="white" />
-    </mask>
-  </defs>
+    <!-- Ring around number with a mask for the fire -->
+    <g mask="url(#ringMask)">
+      <circle cx="300" cy="60" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
+              style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
+    </g>
+    <defs>
+      <mask id="ringMask">
+        <rect x="-50" y="-50" width="100" height="100" fill="white" />
+        <circle cx="0" cy="-20" r="40" fill="black" />
+        <ellipse cx="0" cy="-50" rx="20" ry="15" fill="white" />
+      </mask>
+    </defs>
 
-  <!-- Fire icon -->
-  <g transform="translate(300, 50)" stroke-opacity="0" 
-     style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-    <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
-    <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
-             C -3.23 9.2 -4.79 7.53 -4.79 5.47 L -4.76 5.11 
-             C -6.78 7.51 -8 10.62 -8 13.99 C -8 18.41 -4.42 22 0 22 
-             C 4.42 22 8 18.41 8 13.99 
-             C 8 8.6 5.41 3.79 1.5 0.67 Z 
-             M -0.29 19 C -2.07 19 -3.51 17.6 -3.51 15.86 
-             C -3.51 14.24 -2.46 13.1 -0.7 12.74 
-             C 1.07 12.38 2.9 11.53 3.92 10.16 
-             C 4.31 11.45 4.51 12.81 4.51 14.2 
-             C 4.51 16.85 2.36 19 -0.29 19 Z" 
-          fill="#FF4500" stroke-opacity="0"/>
+    <!-- Fire icon -->
+    <g transform="translate(300, 50)" stroke-opacity="0" 
+       style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
+      <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
+      <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
+               C -3.23 9.2 -4.79 7.53 -4.79 5.47 L -4.76 5.11 
+               C -6.78 7.51 -8 10.62 -8 13.99 C -8 18.41 -4.42 22 0 22 
+               C 4.42 22 8 18.41 8 13.99 
+               C 8 8.6 5.41 3.79 1.5 0.67 Z 
+               M -0.29 19 C -2.07 19 -3.51 17.6 -3.51 15.86 
+               C -3.51 14.24 -2.46 13.1 -0.7 12.74 
+               C 1.07 12.38 2.9 11.53 3.92 10.16 
+               C 4.31 11.45 4.51 12.81 4.51 14.2 
+               C 4.51 16.85 2.36 19 -0.29 19 Z" 
+            fill="#FF4500" stroke-opacity="0"/>
+    </g>
   </g>
-</g>
 
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
