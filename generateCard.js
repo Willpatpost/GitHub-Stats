@@ -274,13 +274,13 @@ async function generateSVG() {
 
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
-    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
+    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       ${totalContributions}
     </text>
-    <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
     </text>
-    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
       ${currentStreakDates}
     </text>
   </g>
@@ -309,17 +309,17 @@ async function generateSVG() {
     </text>
     
     <!-- Label -->
-    <text class="label" y="30" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
       Current Streak
     </text>
     
     <!-- Date Range -->
-    <text class="date" y="50" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
       ${currentStreakDates}
     </text>
 
     <!-- Fire icon positioned within the hole of the ring -->
-    <g transform="translate(0, -40)" stroke-opacity="0" 
+    <g transform="translate(0, -60)" stroke-opacity="0" 
        style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
       <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
@@ -338,20 +338,20 @@ async function generateSVG() {
 
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
-    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
+    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
       ${longestStreak}
     </text>
-    <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
       Longest Streak
     </text>
-    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
       ${longestStreakDates}
     </text>
   </g>
 
   <!-- Section 4: Top Languages -->
   <g transform="translate(700, 100)">
-    <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
+    <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
       Top Languages Used
     </text>
     <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
@@ -361,7 +361,7 @@ async function generateSVG() {
 
   <!-- Footer: Last Update Timestamp -->
   <g transform="translate(20, 280)">
-    <text class="footer" x="0" y="0" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
+    <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
       Updated last at: ${lastUpdate}
     </text>
   </g>
