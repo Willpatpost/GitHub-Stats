@@ -56,7 +56,7 @@
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
     <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-      1332
+      1334
     </text>
     <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
@@ -67,7 +67,8 @@
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g style="isolation: isolate" transform="translate(300, 100)">
+  <!-- Modification for point 2: Lower the ring by 10 units -->
+  <g style="isolation: isolate" transform="translate(300, 110)">
     <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
       <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
@@ -86,7 +87,7 @@
     <text class="stat" y="15" text-anchor="middle" fill="#FFFFFF" 
           font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
-      20
+      21
     </text>
     
     <!-- Label -->
@@ -143,7 +144,7 @@
   <!-- Footer: Last Update Timestamp -->
   <g transform="translate(20, 280)">
     <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-      Updated last at: 12/15/2024, 1:21:09 AM
+      Updated last at: 12/14/2024, 8:30:55 PM EST
     </text>
   </g>
 </svg>
