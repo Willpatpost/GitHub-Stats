@@ -56,7 +56,7 @@
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
     <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-      1340
+      1328
     </text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
@@ -67,34 +67,40 @@
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g style="isolation: isolate" transform="translate(300, 80)">
-    <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
-          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-          font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-      20
-    </text>
-    <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Current Streak
-    </text>
-    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-      Nov 25, 2024 - Dec 15, 2024
-    </text>
-
-    <!-- Ring around number with a mask for the fire -->
+  <g style="isolation: isolate" transform="translate(300, 100)">
+    <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
-      <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
+      <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
               style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
     </g>
     <defs>
       <mask id="ringMask">
         <rect x="-50" y="-50" width="100" height="100" fill="white" />
-        <circle cx="0" cy="-20" r="40" fill="black" />
-        <ellipse cx="0" cy="-50" rx="20" ry="15" fill="white" />
+        <circle cx="0" cy="0" r="40" fill="black" />
+        <!-- Changed fill to black to hide the top of the ring -->
+        <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
       </mask>
     </defs>
 
-    <!-- Fire icon -->
-    <g transform="translate(0, -30)" stroke-opacity="0" 
+    <!-- Main Number -->
+    <text class="stat" y="-10" text-anchor="middle" fill="#FFFFFF" 
+          font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
+          font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
+      20
+    </text>
+    
+    <!-- Label -->
+    <text class="label" y="30" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+      Current Streak
+    </text>
+    
+    <!-- Date Range -->
+    <text class="date" y="50" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+      Nov 25, 2024 - Dec 15, 2024
+    </text>
+
+    <!-- Fire icon positioned within the hole of the ring -->
+    <g transform="translate(0, -40)" stroke-opacity="0" 
        style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
       <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
@@ -125,19 +131,19 @@
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g transform="translate(700, 80)">
+  <g transform="translate(700, 100)">
     <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
       Top Languages Used
     </text>
     <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-      <tspan x="0" dy="1.2em">Python: 53.13%</tspan><tspan x="0" dy="1.2em">JavaScript: 13.82%</tspan><tspan x="0" dy="1.2em">CSS: 12.74%</tspan><tspan x="0" dy="1.2em">HTML: 11.71%</tspan><tspan x="0" dy="1.2em">Java: 8.60%</tspan>
+      <tspan x="0" dy="2.0em">Python: 53.13%</tspan><tspan x="0" dy="2.0em">JavaScript: 13.82%</tspan><tspan x="0" dy="2.0em">CSS: 12.74%</tspan><tspan x="0" dy="2.0em">HTML: 11.71%</tspan><tspan x="0" dy="2.0em">Java: 8.60%</tspan>
     </text>
   </g>
 
   <!-- Footer: Last Update Timestamp -->
   <g transform="translate(20, 280)">
     <text class="footer" x="0" y="0" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-      Updated last at: 12/15/2024, 12:09:43 AM
+      Updated last at: 12/15/2024, 1:10:16 AM
     </text>
   </g>
 </svg>
