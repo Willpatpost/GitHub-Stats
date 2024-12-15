@@ -302,7 +302,7 @@ async function generateSVG() {
     </defs>
 
     <!-- Main Number -->
-    <text class="stat" y="-10" text-anchor="middle" fill="#FFFFFF" 
+    <text class="stat" y="5" text-anchor="middle" fill="#FFFFFF" 
           font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
       ${currentStreak}
