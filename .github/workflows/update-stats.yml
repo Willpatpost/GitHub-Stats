@@ -4,10 +4,10 @@ name: Update GitHub Stats
 on:
   schedule:
     - cron: '*/5 * * * *'  # Runs every 5 minutes
-  workflow_dispatch: # Allows for manual triggering
+  workflow_dispatch:        # Allows for manual triggering
 
 permissions:
-  contents: write  # Grants write permissions to the repository
+  contents: write           # Grants write permissions to the repository
 
 jobs:
   update-stats:
@@ -17,15 +17,14 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Fetch all branches
+          fetch-depth: 0       # Fetch all branches
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Updated to Node.js 18
+          node-version: '18'  # Using Node.js v18+
 
-      - name: Install dependencies
-        run: npm install
+      # Removed the 'Install dependencies' step as it's no longer necessary
 
       - name: Run the stats generation script
         env:
