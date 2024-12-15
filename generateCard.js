@@ -1,5 +1,7 @@
 // generateCard.js
 const fs = require('fs');
+const fetch = require('node-fetch'); // Ensure you have node-fetch installed
+require('dotenv').config(); // To load environment variables from a .env file
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
@@ -82,38 +84,30 @@ async function fetchContributions() {
           const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          // Debugging Log (Optional)
-          // console.log(`Processing Date: ${date}, Contribution: ${contributionCount}, Weekend: ${isWeekend}`);
-
           if (contributionCount > 0) {
             if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
               currentStreak++;
               if (currentStreak === 1) {
                 currentStreakStart = date;
               }
-              // console.log(`Streak incremented to ${currentStreak}`);
             } else {
               currentStreak = 1; // Reset streak
               currentStreakStart = date;
-              // console.log(`Streak reset to ${currentStreak}`);
             }
             lastContributedDate = date;
             if (currentStreak > longestStreak) {
               longestStreak = currentStreak;
               longestStreakStart = currentStreakStart;
               longestStreakEnd = date;
-              // console.log(`Longest Streak updated to ${longestStreak}`);
             }
           } else if (isWeekend) {
             // No contribution on weekend, but streak continues
             // Do not reset the streak
-            // console.log(`No contribution on weekend. Streak continues.`);
           } else {
             // No contribution on weekday, reset streak
             currentStreak = 0;
             currentStreakStart = null;
             lastContributedDate = null;
-            // console.log(`No contribution on weekday. Streak reset.`);
           }
         });
     });
@@ -193,11 +187,18 @@ async function fetchTopLanguages() {
 }
 
 async function generateSVG() {
-  const { totalContributions, currentStreak, longestStreak, currentStreakStart, longestStreakStart, longestStreakEnd } = await fetchContributions();
+  const {
+    totalContributions,
+    currentStreak,
+    longestStreak,
+    currentStreakStart,
+    longestStreakStart,
+    longestStreakEnd,
+  } = await fetchContributions();
   const topLanguages = await fetchTopLanguages();
 
   const languagesText = topLanguages
-    .map(({ lang, percent }) => `<tspan x="0" dy="1.2em">${lang}: ${percent.toFixed(2)}%</tspan>`)
+    .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
     .join('');
 
   // Format dates
@@ -287,34 +288,40 @@ async function generateSVG() {
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g style="isolation: isolate" transform="translate(300, 80)">
-    <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
-          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-          font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-      ${currentStreak}
-    </text>
-    <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-      Current Streak
-    </text>
-    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-      ${currentStreakDates}
-    </text>
-
-    <!-- Ring around number with a mask for the fire -->
+  <g style="isolation: isolate" transform="translate(300, 100)">
+    <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
-      <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
+      <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
               style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
     </g>
     <defs>
       <mask id="ringMask">
         <rect x="-50" y="-50" width="100" height="100" fill="white" />
-        <circle cx="0" cy="-20" r="40" fill="black" />
-        <ellipse cx="0" cy="-50" rx="20" ry="15" fill="white" />
+        <circle cx="0" cy="0" r="40" fill="black" />
+        <!-- Changed fill to black to hide the top of the ring -->
+        <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
       </mask>
     </defs>
 
-    <!-- Fire icon -->
-    <g transform="translate(0, -30)" stroke-opacity="0" 
+    <!-- Main Number -->
+    <text class="stat" y="-10" text-anchor="middle" fill="#FFFFFF" 
+          font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
+          font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
+      ${currentStreak}
+    </text>
+    
+    <!-- Label -->
+    <text class="label" y="30" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+      Current Streak
+    </text>
+    
+    <!-- Date Range -->
+    <text class="date" y="50" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+      ${currentStreakDates}
+    </text>
+
+    <!-- Fire icon positioned within the hole of the ring -->
+    <g transform="translate(0, -40)" stroke-opacity="0" 
        style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
       <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
@@ -345,7 +352,7 @@ async function generateSVG() {
   </g>
 
   <!-- Section 4: Top Languages -->
-  <g transform="translate(700, 80)">
+  <g transform="translate(700, 100)">
     <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
       Top Languages Used
     </text>
