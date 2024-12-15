@@ -289,7 +289,7 @@ async function generateSVG() {
 
   <!-- Section 2: Current Streak -->
   <!-- Modification for point 2: Lower the ring by 10 units -->
-  <g style="isolation: isolate" transform="translate(300, 110)">
+  <g style="isolation: isolate" transform="translate(300, 100)">
     <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
       <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
