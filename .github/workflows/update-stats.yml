@@ -24,8 +24,6 @@ jobs:
         with:
           node-version: '18'  # Using Node.js v18+
 
-      # Removed the 'Install dependencies' step as it's no longer necessary
-
       - name: Run the stats generation script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
