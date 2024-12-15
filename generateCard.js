@@ -59,6 +59,9 @@ async function fetchContributions() {
   const totalContributions = contributions.totalContributions;
   let currentStreak = 0;
   let longestStreak = 0;
+  let currentStreakStart = null;
+  let longestStreakStart = null;
+  let longestStreakEnd = null;
   const today = new Date().toISOString().split('T')[0];
   let lastContributedDate = null;
 
@@ -85,28 +88,44 @@ async function fetchContributions() {
           if (contributionCount > 0) {
             if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
               currentStreak++;
+              if (currentStreak === 1) {
+                currentStreakStart = date;
+              }
               // console.log(`Streak incremented to ${currentStreak}`);
             } else {
               currentStreak = 1; // Reset streak
+              currentStreakStart = date;
               // console.log(`Streak reset to ${currentStreak}`);
             }
             lastContributedDate = date;
-            longestStreak = Math.max(longestStreak, currentStreak);
-            // console.log(`Longest Streak updated to ${longestStreak}`);
+            if (currentStreak > longestStreak) {
+              longestStreak = currentStreak;
+              longestStreakStart = currentStreakStart;
+              longestStreakEnd = date;
+              // console.log(`Longest Streak updated to ${longestStreak}`);
+            }
           } else if (isWeekend) {
             // No contribution on weekend, but streak continues
-            // console.log(`No contribution on weekend. Streak continues.`);
             // Do not reset the streak
+            // console.log(`No contribution on weekend. Streak continues.`);
           } else {
-            // No contribution on a weekday, reset streak
+            // No contribution on weekday, reset streak
             currentStreak = 0;
+            currentStreakStart = null;
             lastContributedDate = null;
             // console.log(`No contribution on weekday. Streak reset.`);
           }
         });
     });
 
-  return { totalContributions, currentStreak, longestStreak };
+  return {
+    totalContributions,
+    currentStreak,
+    longestStreak,
+    currentStreakStart,
+    longestStreakStart,
+    longestStreakEnd,
+  };
 }
 
 // Helper function to check if two dates are consecutive
@@ -174,16 +193,34 @@ async function fetchTopLanguages() {
 }
 
 async function generateSVG() {
-  const { totalContributions, currentStreak, longestStreak } = await fetchContributions();
+  const { totalContributions, currentStreak, longestStreak, currentStreakStart, longestStreakStart, longestStreakEnd } = await fetchContributions();
   const topLanguages = await fetchTopLanguages();
 
   const languagesText = topLanguages
     .map(({ lang, percent }) => `<tspan x="0" dy="1.2em">${lang}: ${percent.toFixed(2)}%</tspan>`)
     .join('');
 
+  // Format dates
+  const formatDate = (dateStr) => {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, options);
+  };
+
+  const currentStreakEnd = new Date().toISOString().split('T')[0];
+  const currentStreakDates = currentStreak > 0 && currentStreakStart
+    ? `${formatDate(currentStreakStart)} - ${formatDate(currentStreakEnd)}`
+    : "N/A";
+
+  const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
+    ? `${formatDate(longestStreakStart)} - ${formatDate(longestStreakEnd)}`
+    : "N/A";
+
+  const lastUpdate = new Date().toLocaleString();
+
   const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     style="isolation: isolate" viewBox="0 0 800 250" width="800px" height="250px">
+     style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
   <style>
     @keyframes fadein {
       0% { opacity: 0; }
@@ -216,15 +253,25 @@ async function generateSVG() {
       stroke-width: 2;
       stroke-dasharray: 4; /* Dashed line style */
     }
+
+    .date {
+      font: 12px sans-serif;
+      fill: #AAAAAA;
+    }
+
+    .footer {
+      font: 10px sans-serif;
+      fill: #AAAAAA;
+    }
   </style>
 
   <!-- Background -->
   <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
 
   <!-- Divider Lines -->
-  <line x1="200" y1="25" x2="200" y2="225" class="divider" />
-  <line x1="400" y1="25" x2="400" y2="225" class="divider" />
-  <line x1="600" y1="25" x2="600" y2="225" class="divider" />
+  <line x1="200" y1="25" x2="200" y2="275" class="divider" />
+  <line x1="400" y1="25" x2="400" y2="275" class="divider" />
+  <line x1="600" y1="25" x2="600" y2="275" class="divider" />
 
   <!-- Section 1: Total Contributions -->
   <g transform="translate(100, 100)">
@@ -234,39 +281,28 @@ async function generateSVG() {
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
       Total Contributions
     </text>
+    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
+      ${currentStreakDates}
+    </text>
   </g>
 
-  <!-- Current Streak big number -->
-  <g style="isolation: isolate">
-    <g transform="translate(300, 80)">
-      <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
-            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-            font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
-        ${currentStreak}
-      </text>
-    </g>
-
-    <!-- Current Streak label -->
-    <g transform="translate(300, 120)">
-      <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
-            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-            font-size="14px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-        Current Streak
-      </text>
-    </g>
-
-    <!-- Current Streak range -->
-    <g transform="translate(300, 150)">
-      <text x="0" y="21" stroke-width="0" text-anchor="middle" fill="#AAAAAA" 
-            stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="400" 
-            font-size="12px" font-style="normal" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-        Forever
-      </text>
-    </g>
+  <!-- Section 2: Current Streak -->
+  <g style="isolation: isolate" transform="translate(300, 80)">
+    <text x="0" y="32" stroke-width="0" text-anchor="middle" fill="#FFFFFF" 
+          stroke="none" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
+          font-size="28px" font-style="normal" style="animation: currstreak 0.6s linear forwards">
+      ${currentStreak}
+    </text>
+    <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
+      Current Streak
+    </text>
+    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
+      ${currentStreakDates}
+    </text>
 
     <!-- Ring around number with a mask for the fire -->
     <g mask="url(#ringMask)">
-      <circle cx="300" cy="60" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
+      <circle cx="0" cy="-20" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
               style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
     </g>
     <defs>
@@ -278,7 +314,7 @@ async function generateSVG() {
     </defs>
 
     <!-- Fire icon -->
-    <g transform="translate(300, 50)" stroke-opacity="0" 
+    <g transform="translate(0, -30)" stroke-opacity="0" 
        style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
       <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
@@ -297,16 +333,32 @@ async function generateSVG() {
 
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
-    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">${longestStreak}</text>
+    <text class="stat" y="0" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
+      ${longestStreak}
+    </text>
     <text class="label" y="40" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
       Longest Streak
+    </text>
+    <text class="date" y="60" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
+      ${longestStreakDates}
     </text>
   </g>
 
   <!-- Section 4: Top Languages -->
   <g transform="translate(700, 80)">
-    <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">Top Languages Used</text>
-    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">${languagesText}</text>
+    <text class="title" x="0" y="-20" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
+      Top Languages Used
+    </text>
+    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
+      ${languagesText}
+    </text>
+  </g>
+
+  <!-- Footer: Last Update Timestamp -->
+  <g transform="translate(20, 280)">
+    <text class="footer" x="0" y="0" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
+      Updated last at: ${lastUpdate}
+    </text>
   </g>
 </svg>
   `;
