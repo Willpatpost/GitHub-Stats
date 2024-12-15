@@ -43,10 +43,6 @@ jobs:
           git checkout main
           git pull origin main
 
-      - name: Merge js into main
-        run: |
-          git merge js || echo "Already up to date."  # Remove if 'js' branch is unnecessary
-
       - name: Stage and Add SVG
         run: |
           git add stats_board.svg
