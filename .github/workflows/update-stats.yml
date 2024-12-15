@@ -24,15 +24,24 @@ jobs:
         with:
           node-version: '18'  # Using Node.js v18+
 
+      - name: Install Dependencies
+        run: npm install
+        # If you have dependencies, list them here
+
       - name: Run the stats generation script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
-        run: node generateCard.js
+        run: |
+          echo "Running generateCard.js..."
+          node generateCard.js
+          echo "generateCard.js completed."
 
       - name: Configure Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global push.default simple
+          git config --list
 
       - name: Switch to main branch
         run: |
