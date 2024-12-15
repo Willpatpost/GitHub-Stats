@@ -99,7 +99,8 @@ async function fetchContributions() {
               longestStreakEnd = date;
             }
           } else if (isWeekend) {
-            // No contribution on weekend, but streak continues
+            // Modification for point 3: Include weekends in streak
+            currentStreak++;
             // Do not reset the streak
           } else {
             // No contribution on weekday, reset streak
@@ -215,7 +216,8 @@ async function generateSVG() {
     ? `${formatDate(longestStreakStart)} - ${formatDate(longestStreakEnd)}`
     : "N/A";
 
-  const lastUpdate = new Date().toLocaleString();
+  // Modification for point 1: Display last update in EST
+  const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
 
   const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -286,7 +288,8 @@ async function generateSVG() {
   </g>
 
   <!-- Section 2: Current Streak -->
-  <g style="isolation: isolate" transform="translate(300, 100)">
+  <!-- Modification for point 2: Lower the ring by 10 units -->
+  <g style="isolation: isolate" transform="translate(300, 110)">
     <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
       <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
