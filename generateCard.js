@@ -1,7 +1,5 @@
 // generateCard.js
 const fs = require('fs');
-const fetch = require('node-fetch'); // Ensure you have node-fetch installed
-require('dotenv').config(); // To load environment variables from a .env file
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
