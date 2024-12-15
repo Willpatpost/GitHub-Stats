@@ -294,7 +294,7 @@ async function generateSVG() {
     </g>
     <defs>
       <mask id="ringMask">
-        <rect x="-50" y="-50" width="100" height="100" fill="white" />
+        <rect x="-50" y="-40" width="100" height="100" fill="white" />
         <circle cx="0" cy="0" r="40" fill="black" />
         <!-- Changed fill to black to hide the top of the ring -->
         <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
