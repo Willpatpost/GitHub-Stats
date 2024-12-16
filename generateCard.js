@@ -1,8 +1,5 @@
 // generateCard.js
 const fs = require('fs');
-const fetch = require('node-fetch'); // Ensure node-fetch is installed
-const dotenv = require('dotenv');
-dotenv.config();
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
