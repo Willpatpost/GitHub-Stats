@@ -62,8 +62,11 @@ async function fetchContributions() {
   let currentStreakStart = null;
   let longestStreakStart = null;
   let longestStreakEnd = null;
-  const today = new Date().toISOString().split('T')[0];
+  let firstCommitDate = null;
+  let mostRecentCommitDate = null;
   let lastContributedDate = null;
+
+  const today = new Date().toISOString().split('T')[0];
 
   // Iterate over each week and each day in chronological order
   contributions.weeks
@@ -78,11 +81,20 @@ async function fetchContributions() {
 
           if (date > today) return; // Skip future dates
 
-          const currentDay = new Date(date);
-          const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
           if (contributionCount > 0) {
+            // Set firstCommitDate if not already set
+            if (!firstCommitDate) {
+              firstCommitDate = date;
+            }
+
+            // Always update mostRecentCommitDate with the latest contribution date
+            mostRecentCommitDate = date;
+
+            // Handle streak calculations
+            const currentDay = new Date(date);
+            const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
             if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
               currentStreak++;
               if (currentStreak === 1) {
@@ -99,9 +111,8 @@ async function fetchContributions() {
               longestStreakEnd = date;
             }
           } else if (isWeekend) {
-            // Modification for point 3: Include weekends in streak
+            // Include weekends in streak
             currentStreak++;
-            // Do not reset the streak
           } else {
             // No contribution on weekday, reset streak
             currentStreak = 0;
@@ -118,6 +129,8 @@ async function fetchContributions() {
     currentStreakStart,
     longestStreakStart,
     longestStreakEnd,
+    firstCommitDate,
+    mostRecentCommitDate,
   };
 }
 
@@ -193,6 +206,8 @@ async function generateSVG() {
     currentStreakStart,
     longestStreakStart,
     longestStreakEnd,
+    firstCommitDate,
+    mostRecentCommitDate,
   } = await fetchContributions();
   const topLanguages = await fetchTopLanguages();
 
@@ -202,14 +217,14 @@ async function generateSVG() {
 
   // Format dates
   const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     const date = new Date(dateStr);
     return date.toLocaleDateString(undefined, options);
   };
 
-  const currentStreakEnd = new Date().toISOString().split('T')[0];
-  const currentStreakDates = currentStreak > 0 && currentStreakStart
-    ? `${formatDate(currentStreakStart)} - ${formatDate(currentStreakEnd)}`
+  const commitDateRange = firstCommitDate && mostRecentCommitDate
+    ? `${formatDate(firstCommitDate)} - ${formatDate(mostRecentCommitDate)}`
     : "N/A";
 
   const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
@@ -283,7 +298,7 @@ async function generateSVG() {
       Total Contributions
     </text>
     <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
-      ${currentStreakDates}
+      ${commitDateRange}
     </text>
   </g>
 
@@ -318,7 +333,9 @@ async function generateSVG() {
     
     <!-- Date Range -->
     <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-      ${currentStreakDates}
+      ${currentStreak > 0 && currentStreakStart
+        ? `${formatDate(currentStreakStart)} - ${formatDate(new Date().toISOString().split('T')[0])}`
+        : "N/A"}
     </text>
 
     <!-- Fire icon positioned within the hole of the ring -->
