@@ -1,6 +1,6 @@
 
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-       style="isolation: isolate" viewBox="0 0 1000 400" width="1000px" height="400px">
+       style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
     <style>
       @keyframes fadein {
         0% { opacity: 0; }
@@ -31,7 +31,7 @@
       .divider {
         stroke: #555555;
         stroke-width: 2;
-        stroke-dasharray: 4;
+        stroke-dasharray: 4; /* Dashed line style */
       }
 
       .date {
@@ -49,14 +49,14 @@
     <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
 
     <!-- Divider Lines -->
-    <line x1="250" y1="50" x2="250" y2="350" class="divider" />
-    <line x1="500" y1="50" x2="500" y2="350" class="divider" />
-    <line x1="750" y1="50" x2="750" y2="350" class="divider" />
+    <line x1="200" y1="25" x2="200" y2="275" class="divider" />
+    <line x1="400" y1="25" x2="400" y2="275" class="divider" />
+    <line x1="600" y1="25" x2="600" y2="275" class="divider" />
 
     <!-- Section 1: Total Contributions -->
-    <g transform="translate(125, 100)">
+    <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        740
+        1365
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
@@ -67,7 +67,7 @@
     </g>
 
     <!-- Section 2: Current Streak -->
-    <g style="isolation: isolate" transform="translate(375, 100)">
+    <g style="isolation: isolate" transform="translate(300, 100)">
       <!-- Ring around number with a mask to hide the top -->
       <g mask="url(#ringMask)">
         <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
@@ -77,6 +77,7 @@
         <mask id="ringMask">
           <rect x="-50" y="-40" width="100" height="100" fill="white" />
           <circle cx="0" cy="0" r="40" fill="black" />
+          <!-- Changed fill to black to hide the top of the ring -->
           <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
         </mask>
       </defs>
@@ -117,7 +118,7 @@
     </g>
 
     <!-- Section 3: Longest Streak -->
-    <g transform="translate(625, 100)">
+    <g transform="translate(500, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
         29
       </text>
@@ -130,19 +131,19 @@
     </g>
 
     <!-- Section 4: Top Languages -->
-    <g transform="translate(875, 100)">
+    <g transform="translate(700, 100)">
       <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
         Top Languages Used
       </text>
       <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-        <tspan x="0" dy="2.0em">Python: 56.75%</tspan><tspan x="0" dy="2.0em">JavaScript: 24.35%</tspan><tspan x="0" dy="2.0em">HTML: 7.76%</tspan><tspan x="0" dy="2.0em">CSS: 6.63%</tspan><tspan x="0" dy="2.0em">Java: 4.51%</tspan>
+        <tspan x="0" dy="2.0em">Python: 56.86%</tspan><tspan x="0" dy="2.0em">JavaScript: 24.21%</tspan><tspan x="0" dy="2.0em">HTML: 7.78%</tspan><tspan x="0" dy="2.0em">CSS: 6.64%</tspan><tspan x="0" dy="2.0em">Java: 4.51%</tspan>
       </text>
     </g>
 
     <!-- Footer: Last Update Timestamp -->
-    <g transform="translate(20, 380)">
+    <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: 12/15/2024, 10:25:18 PM EST
+        Updated last at: 12/15/2024, 10:28:31 PM EST
       </text>
     </g>
   </svg>
