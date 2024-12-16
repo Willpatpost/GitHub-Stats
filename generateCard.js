@@ -1,5 +1,6 @@
 // generateCard.js
 const fs = require('fs');
+const fetch = require('node-fetch'); // Ensure node-fetch is installed
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
@@ -37,9 +38,11 @@ async function fetchFromGitHub(query, variables = {}) {
   return data.data;
 }
 
-// Function to fetch contributions
+// Function to fetch contributions (last year)
 async function fetchContributions() {
-  const fromDate = "2008-01-01T00:00:00Z"; // GitHub was launched in 2008
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const fromDate = oneYearAgo.toISOString();
   const toDate = new Date().toISOString();
 
   const query = `
@@ -145,7 +148,7 @@ async function fetchEarliestCommitDate() {
     const query = `
       query ($username: String!, $after: String) {
         user(login: $username) {
-          repositories(first: 100, after: $after, isFork: false, privacy: PUBLIC, ownerAffiliations: OWNER) {
+          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC) {
             pageInfo {
               hasNextPage
               endCursor
@@ -156,7 +159,7 @@ async function fetchEarliestCommitDate() {
                 name
                 target {
                   ... on Commit {
-                    history(last: 1) {
+                    history(first: 1, orderBy: { field: COMMITS, direction: ASC }) {
                       edges {
                         node {
                           committedDate
@@ -180,14 +183,16 @@ async function fetchEarliestCommitDate() {
     const data = await fetchFromGitHub(query, variables);
     const repositories = data.user.repositories.nodes;
 
-    repositories.forEach(repo => {
+    for (const repo of repositories) {
       if (repo.defaultBranchRef && repo.defaultBranchRef.target && repo.defaultBranchRef.target.history.edges.length > 0) {
-        const commitDate = repo.defaultBranchRef.target.history.edges[0].node.committedDate;
-        if (!earliestCommitDate || new Date(commitDate) < new Date(earliestCommitDate)) {
+        const commitDateISO = repo.defaultBranchRef.target.history.edges[0].node.committedDate;
+        const commitDate = new Date(commitDateISO);
+
+        if (!earliestCommitDate || commitDate < earliestCommitDate) {
           earliestCommitDate = commitDate;
         }
       }
-    });
+    }
 
     hasNextPage = data.user.repositories.pageInfo.hasNextPage;
     endCursor = data.user.repositories.pageInfo.endCursor;
@@ -202,7 +207,7 @@ async function fetchTopLanguages() {
   const languages = {};
 
   while (true) {
-    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100&per_page=100&affiliation=owner&sort=updated`;
+    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100&affiliation=owner&sort=updated`;
     const response = await fetch(url, {
       headers: { "Authorization": `Bearer ${token}` },
     });
@@ -250,7 +255,7 @@ async function fetchTopLanguages() {
 
 async function generateSVG() {
   try {
-    // Fetch contributions
+    // Fetch contributions for the past year
     const {
       totalContributions,
       currentStreak,
@@ -260,13 +265,11 @@ async function generateSVG() {
       longestStreakEnd,
     } = await fetchContributions();
 
-    // Fetch earliest commit date
-    const earliestCommitDateISO = await fetchEarliestCommitDate();
-    const earliestCommitDate = earliestCommitDateISO ? new Date(earliestCommitDateISO) : null;
+    // Fetch earliest commit date across all repositories
+    const earliestCommitDate = await fetchEarliestCommitDate();
 
-    // Fetch most recent commit date
-    const mostRecentCommitDateISO = new Date().toISOString();
-    const mostRecentCommitDate = new Date(mostRecentCommitDateISO);
+    // Fetch most recent commit date (assuming it's today or latest in contributions)
+    const mostRecentCommitDate = new Date(); // Alternatively, find the latest commit date from contributions
 
     // Fetch top languages
     const topLanguages = await fetchTopLanguages();
@@ -282,7 +285,7 @@ async function generateSVG() {
       return date.toLocaleDateString(undefined, options);
     };
 
-    const commitDateRange = earliestCommitDate && mostRecentCommitDate
+    const commitDateRange = earliestCommitDate
       ? `${formatDate(earliestCommitDate)} - ${formatDate(mostRecentCommitDate)}`
       : "N/A";
 
@@ -450,7 +453,7 @@ async function generateSVG() {
     console.log("SVG file created successfully.");
   } catch (error) {
     console.error("Error generating SVG:", error);
-    throw error; // Re-throw the error to ensure the workflow catches it
+    throw error; // Re-throw to ensure the workflow catches it
   }
 }
 
