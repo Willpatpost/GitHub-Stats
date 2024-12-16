@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-        # If you have dependencies, list them here
+        # Since there are no dependencies, this will effectively do nothing.
 
       - name: Run the stats generation script
         env:
