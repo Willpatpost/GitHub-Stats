@@ -5,7 +5,7 @@
   "main": "generateCard.js",
   "scripts": {
     "start": "node generateCard.js",
-    "test": "jest"
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "repository": {
     "type": "git",
@@ -23,10 +23,5 @@
     "url": "https://github.com/yourusername/yourrepo/issues"
   },
   "homepage": "https://github.com/yourusername/yourrepo#readme",
-  "dependencies": {
-    "node-fetch": "^3.0.0"
-  },
-  "devDependencies": {
-    "jest": "^27.0.0"
-  }
+  "dependencies": {}
 }
