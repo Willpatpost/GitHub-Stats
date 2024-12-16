@@ -3,7 +3,7 @@ name: Update GitHub Stats
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Runs every hour on the hour
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
   workflow_dispatch:        # Allows for manual triggering
 
 permissions:
@@ -24,21 +24,13 @@ jobs:
         with:
           node-version: '18'  # Using Node.js v18+
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install Dependencies
         run: npm install
+        # If you have dependencies, list them here
 
       - name: Run the stats generation script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}  # Added for flexibility
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
         run: |
           echo "Running generateCard.js..."
           node generateCard.js
@@ -67,10 +59,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes detected in stats_board.svg. Skipping commit.";
           else
-            git commit -m "Update stats board SVG with new data [skip ci]"
+            git commit -m "Update stats board SVG with new data"
             git push origin main
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Optional: Add notification steps here (e.g., Slack, Email) for failure alerts
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
