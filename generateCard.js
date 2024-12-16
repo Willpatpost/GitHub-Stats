@@ -12,105 +12,44 @@ if (!token) {
 
 const GRAPHQL_API = "https://api.github.com/graphql";
 
-// Helper function to make GraphQL requests with retries
-async function fetchFromGitHub(query, variables = {}, retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(GRAPHQL_API, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query, variables }),
-      });
+// Helper function to make GraphQL requests
+async function fetchFromGitHub(query, variables = {}) {
+  const response = await fetch(GRAPHQL_API, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`GitHub API Error (Attempt ${attempt}): ${errorText}`);
-      }
-
-      const data = await response.json();
-      if (data.errors) {
-        throw new Error(`GitHub API Errors (Attempt ${attempt}): ${JSON.stringify(data.errors, null, 2)}`);
-      }
-
-      return data.data;
-    } catch (error) {
-      console.error(error.message);
-      if (attempt === retries) {
-        throw new Error("Exceeded maximum retries for GitHub API.");
-      }
-      // Exponential backoff
-      await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt)));
-    }
-  }
-}
-
-// Function to fetch the earliest commit date across all repositories
-async function fetchEarliestCommitDate() {
-  let hasNextPage = true;
-  let endCursor = null;
-  let earliestCommitDate = null;
-
-  const query = `
-    query ($username: String!, $after: String) {
-      user(login: $username) {
-        repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC, orderBy: {field: CREATED_AT, direction: ASC}) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-          nodes {
-            createdAt
-          }
-        }
-      }
-    }
-  `;
-
-  while (hasNextPage) {
-    const variables = {
-      username,
-      after: endCursor,
-    };
-
-    const data = await fetchFromGitHub(query, variables);
-    const repositories = data.user.repositories.nodes;
-
-    if (repositories.length === 0 && !earliestCommitDate) {
-      // Fallback if no repositories found
-      earliestCommitDate = new Date();
-    }
-
-    for (const repo of repositories) {
-      const repoCreatedAt = new Date(repo.createdAt);
-      if (!earliestCommitDate || repoCreatedAt < earliestCommitDate) {
-        earliestCommitDate = repoCreatedAt;
-      }
-    }
-
-    hasNextPage = data.user.repositories.pageInfo.hasNextPage;
-    endCursor = data.user.repositories.pageInfo.endCursor;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("GitHub API Error:", errorText);
+    throw new Error("Failed to fetch data from GitHub API.");
   }
 
-  return earliestCommitDate;
+  const data = await response.json();
+  if (data.errors) {
+    console.error("GitHub API Error:", JSON.stringify(data.errors, null, 2));
+    throw new Error("Failed to fetch data from GitHub API.");
+  }
+  return data.data;
 }
 
-// Function to fetch total contributions from a specific date to now
-async function fetchContributions(fromDate) {
+// Function to fetch contributions (last year)
+async function fetchContributions() {
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const fromDate = oneYearAgo.toISOString();
   const toDate = new Date().toISOString();
 
   const query = `
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
       user(login: $username) {
         contributionsCollection(from: $from, to: $to) {
-          totalCommitContributions
-          totalIssueContributions
-          totalPullRequestContributions
-          totalPullRequestReviewContributions
-          totalRepositoryContributions
           contributionCalendar {
+            totalContributions
             weeks {
               contributionDays {
                 date
@@ -125,22 +64,14 @@ async function fetchContributions(fromDate) {
 
   const variables = {
     username,
-    from: fromDate.toISOString(),
+    from: fromDate,
     to: toDate,
   };
 
   const data = await fetchFromGitHub(query, variables);
-  const contributions = data.user.contributionsCollection;
+  const contributions = data.user.contributionsCollection.contributionCalendar;
 
-  // Calculate total contributions by summing relevant fields
-  const totalContributions = [
-    contributions.totalCommitContributions,
-    contributions.totalIssueContributions,
-    contributions.totalPullRequestContributions,
-    contributions.totalPullRequestReviewContributions,
-    contributions.totalRepositoryContributions
-  ].reduce((a, b) => a + b, 0);
-
+  const totalContributions = contributions.totalContributions;
   let currentStreak = 0;
   let longestStreak = 0;
   let currentStreakStart = null;
@@ -151,13 +82,13 @@ async function fetchContributions(fromDate) {
   const today = new Date().toISOString().split('T')[0];
 
   // Iterate over each week and each day in chronological order
-  contributions.contributionCalendar.weeks
-    .slice()
-    .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date))
+  contributions.weeks
+    .slice() // Create a shallow copy to prevent mutating the original data
+    .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date)) // Sort weeks chronologically
     .forEach((week) => {
       week.contributionDays
         .slice()
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort days chronologically
         .forEach((day) => {
           const { date, contributionCount } = day;
 
@@ -206,36 +137,30 @@ async function fetchContributions(fromDate) {
   };
 }
 
-// Function to fetch top languages using GraphQL to minimize REST API calls
-async function fetchTopLanguages() {
+// Function to fetch all repositories and determine the earliest commit date
+async function fetchEarliestCommitDate() {
   let hasNextPage = true;
   let endCursor = null;
-  const languages = {};
+  let earliestCommitDate = null;
 
-  const query = `
-    query ($username: String!, $after: String) {
-      user(login: $username) {
-        repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-          nodes {
-            languages(first: 100) {
-              edges {
-                size
-                node {
-                  name
-                }
-              }
+  while (hasNextPage) {
+    const query = `
+      query ($username: String!, $after: String) {
+        user(login: $username) {
+          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              name
+              createdAt
             }
           }
         }
       }
-    }
-  `;
+    `;
 
-  while (hasNextPage) {
     const variables = {
       username,
       after: endCursor,
@@ -245,15 +170,57 @@ async function fetchTopLanguages() {
     const repositories = data.user.repositories.nodes;
 
     for (const repo of repositories) {
-      for (const edge of repo.languages.edges) {
-        const lang = edge.node.name;
-        const bytes = edge.size;
-        languages[lang] = (languages[lang] || 0) + bytes;
+      const repoCreatedAt = new Date(repo.createdAt);
+      if (!earliestCommitDate || repoCreatedAt < earliestCommitDate) {
+        earliestCommitDate = repoCreatedAt;
       }
     }
 
     hasNextPage = data.user.repositories.pageInfo.hasNextPage;
     endCursor = data.user.repositories.pageInfo.endCursor;
+  }
+
+  return earliestCommitDate;
+}
+
+// Function to fetch top languages
+async function fetchTopLanguages() {
+  let page = 1;
+  const languages = {};
+
+  while (true) {
+    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100&affiliation=owner&sort=updated`;
+    const response = await fetch(url, {
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error fetching repositories: ${errorText}`);
+      throw new Error("Failed to fetch repositories from GitHub.");
+    }
+
+    const repos = await response.json();
+    if (!repos.length) break;
+
+    for (const repo of repos) {
+      const langUrl = repo.languages_url;
+      const langResponse = await fetch(langUrl, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      if (!langResponse.ok) {
+        const errorText = await langResponse.text();
+        console.error(`Error fetching languages for repo ${repo.name}: ${errorText}`);
+        continue; // Skip this repo
+      }
+
+      const langData = await langResponse.json();
+      for (const [lang, bytes] of Object.entries(langData)) {
+        languages[lang] = (languages[lang] || 0) + bytes;
+      }
+    }
+    page++;
   }
 
   const totalBytes = Object.values(languages).reduce((sum, val) => sum + val, 0);
@@ -268,37 +235,9 @@ async function fetchTopLanguages() {
     .slice(0, 5);
 }
 
-// Helper function to check if two dates are consecutive
-function isNextDay(previousDate, currentDate) {
-  const prev = new Date(previousDate);
-  const curr = new Date(currentDate);
-
-  // Normalize both dates to UTC midnight
-  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
-  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
-
-  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
-  return diffDays === 1;
-}
-
-// Function to format dates
-function formatDate(date) {
-  if (!date) return "N/A";
-  const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  return date.toLocaleDateString(undefined, options);
-}
-
-// Function to fetch all repositories and determine the earliest commit date
-// (Previously defined as fetchEarliestCommitDate)
-
-// Main function to generate SVG
 async function generateSVG() {
   try {
-    console.log("Fetching earliest commit date...");
-    const earliestCommitDate = await fetchEarliestCommitDate();
-    console.log(`Earliest commit date: ${earliestCommitDate.toISOString().split('T')[0]}`);
-
-    console.log("Fetching total contributions...");
+    // Fetch contributions for the past year
     const {
       totalContributions,
       currentStreak,
@@ -306,18 +245,30 @@ async function generateSVG() {
       currentStreakStart,
       longestStreakStart,
       longestStreakEnd,
-    } = await fetchContributions(earliestCommitDate);
-    console.log(`Total Contributions: ${totalContributions}`);
+    } = await fetchContributions();
 
-    console.log("Fetching top languages...");
+    // Fetch earliest commit date across all repositories (using createdAt as proxy)
+    const earliestCommitDate = await fetchEarliestCommitDate();
+
+    // Fetch most recent commit date (assuming it's today or latest in contributions)
+    const mostRecentCommitDate = new Date(); // Alternatively, find the latest commit date from contributions
+
+    // Fetch top languages
     const topLanguages = await fetchTopLanguages();
 
     const languagesText = topLanguages
       .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
       .join('');
 
+    // Format dates
+    const formatDate = (date) => {
+      if (!date) return "N/A";
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return date.toLocaleDateString(undefined, options);
+    };
+
     const commitDateRange = earliestCommitDate
-      ? `${formatDate(earliestCommitDate)} - ${formatDate(new Date())}`
+      ? `${formatDate(earliestCommitDate)} - ${formatDate(mostRecentCommitDate)}`
       : "N/A";
 
     const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
@@ -329,7 +280,7 @@ async function generateSVG() {
 
     const svgContent = `
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-       style="isolation: isolate" viewBox="0 0 1000 400" width="1000px" height="400px">
+       style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
     <style>
       @keyframes fadein {
         0% { opacity: 0; }
@@ -360,7 +311,7 @@ async function generateSVG() {
       .divider {
         stroke: #555555;
         stroke-width: 2;
-        stroke-dasharray: 4;
+        stroke-dasharray: 4; /* Dashed line style */
       }
 
       .date {
@@ -378,12 +329,12 @@ async function generateSVG() {
     <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
 
     <!-- Divider Lines -->
-    <line x1="250" y1="50" x2="250" y2="350" class="divider" />
-    <line x1="500" y1="50" x2="500" y2="350" class="divider" />
-    <line x1="750" y1="50" x2="750" y2="350" class="divider" />
+    <line x1="200" y1="25" x2="200" y2="275" class="divider" />
+    <line x1="400" y1="25" x2="400" y2="275" class="divider" />
+    <line x1="600" y1="25" x2="600" y2="275" class="divider" />
 
     <!-- Section 1: Total Contributions -->
-    <g transform="translate(125, 100)">
+    <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
         ${totalContributions}
       </text>
@@ -396,7 +347,7 @@ async function generateSVG() {
     </g>
 
     <!-- Section 2: Current Streak -->
-    <g style="isolation: isolate" transform="translate(375, 100)">
+    <g style="isolation: isolate" transform="translate(300, 100)">
       <!-- Ring around number with a mask to hide the top -->
       <g mask="url(#ringMask)">
         <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
@@ -406,6 +357,7 @@ async function generateSVG() {
         <mask id="ringMask">
           <rect x="-50" y="-40" width="100" height="100" fill="white" />
           <circle cx="0" cy="0" r="40" fill="black" />
+          <!-- Changed fill to black to hide the top of the ring -->
           <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
         </mask>
       </defs>
@@ -425,7 +377,7 @@ async function generateSVG() {
       <!-- Date Range -->
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
         ${currentStreak > 0 && currentStreakStart
-          ? `${formatDate(new Date(currentStreakStart))} - ${formatDate(new Date())}`
+          ? `${formatDate(new Date(currentStreakStart))} - ${formatDate(mostRecentCommitDate)}`
           : "N/A"}
       </text>
 
@@ -448,7 +400,7 @@ async function generateSVG() {
     </g>
 
     <!-- Section 3: Longest Streak -->
-    <g transform="translate(625, 100)">
+    <g transform="translate(500, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
         ${longestStreak}
       </text>
@@ -461,7 +413,7 @@ async function generateSVG() {
     </g>
 
     <!-- Section 4: Top Languages -->
-    <g transform="translate(875, 100)">
+    <g transform="translate(700, 100)">
       <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
         Top Languages Used
       </text>
@@ -471,7 +423,7 @@ async function generateSVG() {
     </g>
 
     <!-- Footer: Last Update Timestamp -->
-    <g transform="translate(20, 380)">
+    <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
         Updated last at: ${lastUpdate}
       </text>
@@ -483,8 +435,22 @@ async function generateSVG() {
     console.log("SVG file created successfully.");
   } catch (error) {
     console.error("Error generating SVG:", error);
+    throw error; // Re-throw to ensure the workflow catches it
   }
 }
 
-// Execute the main function
-generateSVG();
+// Helper function to check if two dates are consecutive
+function isNextDay(previousDate, currentDate) {
+  const prev = new Date(previousDate);
+  const curr = new Date(currentDate);
+
+  // Normalize both dates to UTC midnight
+  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
+  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
+
+  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
+  return diffDays === 1;
+}
+
+// Main function
+generateSVG().catch((error) => console.error("Error generating SVG:", error));
