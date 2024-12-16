@@ -154,20 +154,7 @@ async function fetchEarliestCommitDate() {
             }
             nodes {
               name
-              defaultBranchRef {
-                name
-                target {
-                  ... on Commit {
-                    history(last: 1) {
-                      edges {
-                        node {
-                          committedDate
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+              createdAt
             }
           }
         }
@@ -183,17 +170,9 @@ async function fetchEarliestCommitDate() {
     const repositories = data.user.repositories.nodes;
 
     for (const repo of repositories) {
-      if (
-        repo.defaultBranchRef &&
-        repo.defaultBranchRef.target &&
-        repo.defaultBranchRef.target.history.edges.length > 0
-      ) {
-        const commitDateISO = repo.defaultBranchRef.target.history.edges[0].node.committedDate;
-        const commitDate = new Date(commitDateISO);
-
-        if (!earliestCommitDate || commitDate < earliestCommitDate) {
-          earliestCommitDate = commitDate;
-        }
+      const repoCreatedAt = new Date(repo.createdAt);
+      if (!earliestCommitDate || repoCreatedAt < earliestCommitDate) {
+        earliestCommitDate = repoCreatedAt;
       }
     }
 
@@ -268,7 +247,7 @@ async function generateSVG() {
       longestStreakEnd,
     } = await fetchContributions();
 
-    // Fetch earliest commit date across all repositories
+    // Fetch earliest commit date across all repositories (using createdAt as proxy)
     const earliestCommitDate = await fetchEarliestCommitDate();
 
     // Fetch most recent commit date (assuming it's today or latest in contributions)
