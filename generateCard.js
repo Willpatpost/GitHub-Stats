@@ -105,9 +105,12 @@ async function fetchContributions(fromDate) {
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
       user(login: $username) {
         contributionsCollection(from: $from, to: $to) {
-          totalContributions
+          totalCommitContributions
+          totalIssueContributions
+          totalPullRequestContributions
+          totalPullRequestReviewContributions
+          totalRepositoryContributions
           contributionCalendar {
-            totalContributions
             weeks {
               contributionDays {
                 date
@@ -127,9 +130,17 @@ async function fetchContributions(fromDate) {
   };
 
   const data = await fetchFromGitHub(query, variables);
-  const contributions = data.user.contributionsCollection.contributionCalendar;
+  const contributions = data.user.contributionsCollection;
 
-  const totalContributions = contributions.totalContributions;
+  // Calculate total contributions by summing relevant fields
+  const totalContributions = [
+    contributions.totalCommitContributions,
+    contributions.totalIssueContributions,
+    contributions.totalPullRequestContributions,
+    contributions.totalPullRequestReviewContributions,
+    contributions.totalRepositoryContributions
+  ].reduce((a, b) => a + b, 0);
+
   let currentStreak = 0;
   let longestStreak = 0;
   let currentStreakStart = null;
@@ -140,7 +151,7 @@ async function fetchContributions(fromDate) {
   const today = new Date().toISOString().split('T')[0];
 
   // Iterate over each week and each day in chronological order
-  contributions.weeks
+  contributions.contributionCalendar.weeks
     .slice()
     .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date))
     .forEach((week) => {
@@ -277,6 +288,9 @@ function formatDate(date) {
   return date.toLocaleDateString(undefined, options);
 }
 
+// Function to fetch all repositories and determine the earliest commit date
+// (Previously defined as fetchEarliestCommitDate)
+
 // Main function to generate SVG
 async function generateSVG() {
   try {
@@ -293,7 +307,6 @@ async function generateSVG() {
       longestStreakStart,
       longestStreakEnd,
     } = await fetchContributions(earliestCommitDate);
-
     console.log(`Total Contributions: ${totalContributions}`);
 
     console.log("Fetching top languages...");
