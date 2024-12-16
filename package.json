@@ -1,27 +1,10 @@
 {
   "name": "github-stats",
-  "version": "1.2.0",
+  "version": "1.1.0",
   "description": "GitHub Stats Board Generation",
   "main": "generateCard.js",
   "scripts": {
-    "start": "node generateCard.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "start": "node generateCard.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yourusername/yourrepo.git"
-  },
-  "keywords": [
-    "github",
-    "stats",
-    "automation",
-    "svg"
-  ],
-  "author": "William Poston",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/yourusername/yourrepo/issues"
-  },
-  "homepage": "https://github.com/yourusername/yourrepo#readme",
   "dependencies": {}
 }
