@@ -81,6 +81,10 @@ async function fetchContributions() {
 
           if (date > today) return; // Skip future dates
 
+          const currentDay = new Date(date);
+          const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
           if (contributionCount > 0) {
             // Set firstCommitDate if not already set
             if (!firstCommitDate) {
@@ -91,10 +95,6 @@ async function fetchContributions() {
             mostRecentCommitDate = date;
 
             // Handle streak calculations
-            const currentDay = new Date(date);
-            const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
             if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
               currentStreak++;
               if (currentStreak === 1) {
@@ -303,7 +303,6 @@ async function generateSVG() {
   </g>
 
   <!-- Section 2: Current Streak -->
-  <!-- Modification for point 2: Lower the ring by 10 units -->
   <g style="isolation: isolate" transform="translate(300, 100)">
     <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
