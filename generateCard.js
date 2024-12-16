@@ -35,10 +35,14 @@ async function fetchFromGitHub(query) {
 }
 
 async function fetchContributions() {
+  // Define a far past date to encompass all possible contributions
+  const fromDate = "2008-01-01T00:00:00Z"; // GitHub was launched in 2008
+  const toDate = new Date().toISOString();
+
   const query = `
     {
       user(login: "${username}") {
-        contributionsCollection {
+        contributionsCollection(from: "${fromDate}", to: "${toDate}") {
           contributionCalendar {
             totalContributions
             weeks {
@@ -231,7 +235,7 @@ async function generateSVG() {
     ? `${formatDate(longestStreakStart)} - ${formatDate(longestStreakEnd)}`
     : "N/A";
 
-  // Modification for point 1: Display last update in EST
+  // Display last update in EST
   const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
 
   const svgContent = `
