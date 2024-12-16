@@ -1,6 +1,5 @@
 // generateCard.js
 const fs = require('fs');
-const fetch = require('node-fetch'); // Ensure node-fetch is installed
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
@@ -184,7 +183,11 @@ async function fetchEarliestCommitDate() {
     const repositories = data.user.repositories.nodes;
 
     for (const repo of repositories) {
-      if (repo.defaultBranchRef && repo.defaultBranchRef.target && repo.defaultBranchRef.target.history.edges.length > 0) {
+      if (
+        repo.defaultBranchRef &&
+        repo.defaultBranchRef.target &&
+        repo.defaultBranchRef.target.history.edges.length > 0
+      ) {
         const commitDateISO = repo.defaultBranchRef.target.history.edges[0].node.committedDate;
         const commitDate = new Date(commitDateISO);
 
