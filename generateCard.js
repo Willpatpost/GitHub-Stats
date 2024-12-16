@@ -1,7 +1,8 @@
 // generateCard.js
 const fs = require('fs');
+const fetch = require('node-fetch'); // Ensure Node.js version supports fetch
 
-const username = "Willpatpost";
+const username = process.env.GITHUB_USERNAME || "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
 const exclusionThreshold = 90.0; // Exclude languages that take up more than 90%
 
@@ -49,6 +50,9 @@ async function fetchContributions() {
             }
           }
         }
+        repositories(first: 100, privacy: PUBLIC) {
+          totalCount
+        }
       }
     }
   `;
@@ -57,67 +61,28 @@ async function fetchContributions() {
   const contributions = data.user.contributionsCollection.contributionCalendar;
 
   const totalContributions = contributions.totalContributions;
-  let currentStreak = 0;
-  let longestStreak = 0;
-  let currentStreakStart = null;
-  let longestStreakStart = null;
-  let longestStreakEnd = null;
-  const today = new Date().toISOString().split('T')[0];
-  let lastContributedDate = null;
+  let firstCommitDate = null;
+  let lastCommitDate = null;
 
-  // Iterate over each week and each day in chronological order
-  contributions.weeks
-    .slice() // Create a shallow copy to prevent mutating the original data
-    .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date)) // Sort weeks chronologically
-    .forEach((week) => {
-      week.contributionDays
-        .slice()
-        .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort days chronologically
-        .forEach((day) => {
-          const { date, contributionCount } = day;
+  // Extract all contribution days
+  const allDays = contributions.weeks
+    .flatMap(week => week.contributionDays)
+    .filter(day => day.contributionCount > 0)
+    .map(day => day.date)
+    .sort((a, b) => new Date(a) - new Date(b));
 
-          if (date > today) return; // Skip future dates
-
-          const currentDay = new Date(date);
-          const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-          if (contributionCount > 0) {
-            if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
-              currentStreak++;
-              if (currentStreak === 1) {
-                currentStreakStart = date;
-              }
-            } else {
-              currentStreak = 1; // Reset streak
-              currentStreakStart = date;
-            }
-            lastContributedDate = date;
-            if (currentStreak > longestStreak) {
-              longestStreak = currentStreak;
-              longestStreakStart = currentStreakStart;
-              longestStreakEnd = date;
-            }
-          } else if (isWeekend) {
-            // Modification for point 3: Include weekends in streak
-            currentStreak++;
-            // Do not reset the streak
-          } else {
-            // No contribution on weekday, reset streak
-            currentStreak = 0;
-            currentStreakStart = null;
-            lastContributedDate = null;
-          }
-        });
-    });
+  if (allDays.length > 0) {
+    firstCommitDate = allDays[0];
+    lastCommitDate = allDays[allDays.length - 1];
+  } else {
+    firstCommitDate = "N/A";
+    lastCommitDate = "N/A";
+  }
 
   return {
     totalContributions,
-    currentStreak,
-    longestStreak,
-    currentStreakStart,
-    longestStreakStart,
-    longestStreakEnd,
+    firstCommitDate,
+    lastCommitDate,
   };
 }
 
@@ -153,23 +118,31 @@ async function fetchTopLanguages() {
     const repos = await response.json();
     if (!repos.length) break;
 
-    for (const repo of repos) {
-      const langUrl = repo.languages_url;
-      const langResponse = await fetch(langUrl, {
+    // Fetch all languages concurrently with controlled concurrency
+    const languagePromises = repos.map(repo =>
+      fetch(repo.languages_url, {
         headers: { "Authorization": `Bearer ${token}` },
-      });
+      })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Error fetching languages for repo ${repo.name}: ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .catch(err => {
+          console.error(err.message);
+          return {};
+        })
+    );
 
-      if (!langResponse.ok) {
-        const errorText = await langResponse.text();
-        console.error(`Error fetching languages for repo ${repo.name}: ${errorText}`);
-        continue; // Skip this repo
-      }
+    const languagesArray = await Promise.all(languagePromises);
 
-      const langData = await langResponse.json();
+    languagesArray.forEach(langData => {
       for (const [lang, bytes] of Object.entries(langData)) {
         languages[lang] = (languages[lang] || 0) + bytes;
       }
-    }
+    });
+
     page++;
   }
 
@@ -186,40 +159,29 @@ async function fetchTopLanguages() {
 }
 
 async function generateSVG() {
-  const {
-    totalContributions,
-    currentStreak,
-    longestStreak,
-    currentStreakStart,
-    longestStreakStart,
-    longestStreakEnd,
-  } = await fetchContributions();
-  const topLanguages = await fetchTopLanguages();
+  try {
+    const { totalContributions, firstCommitDate, lastCommitDate } = await fetchContributions();
+    const topLanguages = await fetchTopLanguages();
 
-  const languagesText = topLanguages
-    .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
-    .join('');
+    const languagesText = topLanguages
+      .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
+      .join('');
 
-  // Format dates
-  const formatDate = (dateStr) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, options);
-  };
+    // Format dates
+    const formatDate = (dateStr) => {
+      if (dateStr === "N/A") return dateStr;
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      const date = new Date(dateStr);
+      return date.toLocaleDateString(undefined, options);
+    };
 
-  const currentStreakEnd = new Date().toISOString().split('T')[0];
-  const currentStreakDates = currentStreak > 0 && currentStreakStart
-    ? `${formatDate(currentStreakStart)} - ${formatDate(currentStreakEnd)}`
-    : "N/A";
+    const formattedFirstCommit = formatDate(firstCommitDate);
+    const formattedLastCommit = formatDate(lastCommitDate);
 
-  const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
-    ? `${formatDate(longestStreakStart)} - ${formatDate(longestStreakEnd)}`
-    : "N/A";
+    // Last update in EST
+    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
 
-  // Modification for point 1: Display last update in EST
-  const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
-
-  const svgContent = `
+    const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
   <style>
@@ -279,16 +241,18 @@ async function generateSVG() {
     <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
       ${totalContributions}
     </text>
-    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
+    <text class="label" y="45" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.65s">
       Total Contributions
     </text>
-    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
-      ${currentStreakDates}
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
+      First Commit: ${formattedFirstCommit}
+    </text>
+    <text class="label" y="95" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.75s">
+      Last Commit: ${formattedLastCommit}
     </text>
   </g>
 
   <!-- Section 2: Current Streak -->
-  <!-- Modification for point 2: Lower the ring by 10 units -->
   <g style="isolation: isolate" transform="translate(300, 100)">
     <!-- Ring around number with a mask to hide the top -->
     <g mask="url(#ringMask)">
@@ -308,7 +272,7 @@ async function generateSVG() {
     <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" 
           font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
           font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
-      ${currentStreak}
+      N/A
     </text>
     
     <!-- Label -->
@@ -318,7 +282,7 @@ async function generateSVG() {
     
     <!-- Date Range -->
     <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-      ${currentStreakDates}
+      N/A
     </text>
 
     <!-- Fire icon positioned within the hole of the ring -->
@@ -342,13 +306,16 @@ async function generateSVG() {
   <!-- Section 3: Longest Streak -->
   <g transform="translate(500, 100)">
     <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
-      ${longestStreak}
+      N/A
     </text>
-    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
+    <text class="label" y="45" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.25s">
       Longest Streak
     </text>
-    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
-      ${longestStreakDates}
+    <text class="label" y="65" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
+      Start: N/A
+    </text>
+    <text class="label" y="85" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.35s">
+      End: N/A
     </text>
   </g>
 
@@ -369,11 +336,15 @@ async function generateSVG() {
     </text>
   </g>
 </svg>
-  `;
+    `;
 
-  fs.writeFileSync("stats_board.svg", svgContent);
-  console.log("SVG file created successfully.");
+    fs.writeFileSync("stats_board.svg", svgContent);
+    console.log("SVG file created successfully.");
+  } catch (error) {
+    console.error("Error generating SVG:", error);
+    process.exit(1);
+  }
 }
 
 // Main function
-generateSVG().catch((error) => console.error("Error generating SVG:", error));
+generateSVG();
