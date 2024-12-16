@@ -158,7 +158,7 @@ async function fetchEarliestCommitDate() {
                 name
                 target {
                   ... on Commit {
-                    history(first: 1, orderBy: { field: COMMITS, direction: ASC }) {
+                    history(last: 1) {
                       edges {
                         node {
                           committedDate
