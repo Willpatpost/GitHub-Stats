@@ -1,5 +1,6 @@
 // generateCard.js
 const fs = require('fs');
+const fetch = require('node-fetch'); // Ensure node-fetch is installed
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
@@ -37,13 +38,23 @@ async function fetchFromGitHub(query, variables = {}) {
   return data.data;
 }
 
-// Function to fetch contributions (last year)
-async function fetchContributions() {
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const fromDate = oneYearAgo.toISOString();
-  const toDate = new Date().toISOString();
+// Function to fetch the user's account creation date
+async function fetchUserCreationDate() {
+  const query = `
+    query ($username: String!) {
+      user(login: $username) {
+        createdAt
+      }
+    }
+  `;
 
+  const variables = { username };
+  const data = await fetchFromGitHub(query, variables);
+  return new Date(data.user.createdAt);
+}
+
+// Function to fetch contributions (all-time)
+async function fetchContributions(fromDate, toDate) {
   const query = `
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
       user(login: $username) {
@@ -64,8 +75,8 @@ async function fetchContributions() {
 
   const variables = {
     username,
-    from: fromDate,
-    to: toDate,
+    from: fromDate.toISOString(),
+    to: toDate.toISOString(),
   };
 
   const data = await fetchFromGitHub(query, variables);
@@ -147,7 +158,7 @@ async function fetchEarliestCommitDate() {
     const query = `
       query ($username: String!, $after: String) {
         user(login: $username) {
-          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC) {
+          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC, orderBy: {field: CREATED_AT, direction: ASC}) {
             pageInfo {
               hasNextPage
               endCursor
@@ -237,7 +248,10 @@ async function fetchTopLanguages() {
 
 async function generateSVG() {
   try {
-    // Fetch contributions for the past year
+    // Fetch user's account creation date
+    const userCreationDate = await fetchUserCreationDate();
+
+    // Fetch contributions from account creation date to now
     const {
       totalContributions,
       currentStreak,
@@ -245,7 +259,7 @@ async function generateSVG() {
       currentStreakStart,
       longestStreakStart,
       longestStreakEnd,
-    } = await fetchContributions();
+    } = await fetchContributions(userCreationDate, new Date());
 
     // Fetch earliest commit date across all repositories (using createdAt as proxy)
     const earliestCommitDate = await fetchEarliestCommitDate();
@@ -267,8 +281,8 @@ async function generateSVG() {
       return date.toLocaleDateString(undefined, options);
     };
 
-    const commitDateRange = earliestCommitDate
-      ? `${formatDate(earliestCommitDate)} - ${formatDate(mostRecentCommitDate)}`
+    const commitDateRange = userCreationDate
+      ? `${formatDate(userCreationDate)} - ${formatDate(mostRecentCommitDate)}`
       : "N/A";
 
     const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
