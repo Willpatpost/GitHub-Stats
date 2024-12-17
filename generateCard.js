@@ -88,25 +88,34 @@ async function fetchAllContributions(userCreationDate, now) {
   let allContributionDays = [];
   let totalContributionsSum = 0;
 
-  // We'll move in increments of up to one year.
+  console.log(`Fetching all contributions from ${userCreationDate.toISOString()} to ${now.toISOString()}`);
+
   while (currentStart < now) {
     const currentEnd = new Date(Math.min(
       new Date(currentStart.getFullYear() + 1, currentStart.getMonth(), currentStart.getDate()).getTime(),
       now.getTime()
     ));
 
+    console.log(`Fetching contributions for the period: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
+
     const contributions = await fetchContributionsForPeriod(currentStart, currentEnd);
-    // Aggregate data
+    const periodTotal = contributions.totalContributions;
+    totalContributionsSum += periodTotal;
+
+    console.log(`Period contributions: ${periodTotal}`);
+    console.log(`Running total contributions so far: ${totalContributionsSum}`);
+
     contributions.weeks.forEach((week) => {
       week.contributionDays.forEach((day) => {
         allContributionDays.push(day);
       });
     });
-    totalContributionsSum += contributions.totalContributions;
 
     // Move to the end of this period
     currentStart = currentEnd;
   }
+
+  console.log(`Final total contributions after combining all periods: ${totalContributionsSum}`);
 
   return { allContributionDays, totalContributionsSum };
 }
@@ -278,7 +287,7 @@ async function generateSVG() {
     // Fetch earliest commit date across all repositories
     const earliestCommitDate = await fetchEarliestCommitDate();
 
-    // The most recent commit date (assume now or derived from contributions)
+    // The most recent commit date (assume now)
     const mostRecentCommitDate = now;
 
     // Fetch top languages
@@ -462,8 +471,7 @@ async function generateSVG() {
     console.log("SVG file created successfully.");
   } catch (error) {
     console.error("Error generating SVG:", error);
-    // Even if there's an error fetching contributions, let's still write a file with a different timestamp
-    // so that the repository can show it was updated.
+    // Even if there's an error, still write a fallback SVG with a different timestamp
     const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
     const fallbackSVG = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
