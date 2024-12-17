@@ -1,6 +1,5 @@
 // generateCard.js
 const fs = require('fs');
-const fetch = require('node-fetch'); // Ensure node-fetch is installed
 
 const username = "Willpatpost";
 const token = process.env.GITHUB_TOKEN;
@@ -13,7 +12,7 @@ if (!token) {
 
 const GRAPHQL_API = "https://api.github.com/graphql";
 
-// Helper function to make GraphQL requests
+// Helper function to make GraphQL requests using the built-in fetch
 async function fetchFromGitHub(query, variables = {}) {
   const response = await fetch(GRAPHQL_API, {
     method: "POST",
