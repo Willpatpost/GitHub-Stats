@@ -12,7 +12,7 @@ if (!token) {
 
 const GRAPHQL_API = "https://api.github.com/graphql";
 
-// Helper function to make GraphQL requests using the built-in fetch
+// Helper function to make GraphQL requests
 async function fetchFromGitHub(query, variables = {}) {
   const response = await fetch(GRAPHQL_API, {
     method: "POST",
@@ -52,8 +52,8 @@ async function fetchUserCreationDate() {
   return new Date(data.user.createdAt);
 }
 
-// Function to fetch contributions (all-time)
-async function fetchContributions(fromDate, toDate) {
+// Helper function to fetch a maximum 1-year window of contributions
+async function fetchContributionsForPeriod(fromDate, toDate) {
   const query = `
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
       user(login: $username) {
@@ -79,66 +79,82 @@ async function fetchContributions(fromDate, toDate) {
   };
 
   const data = await fetchFromGitHub(query, variables);
-  const contributions = data.user.contributionsCollection.contributionCalendar;
+  return data.user.contributionsCollection.contributionCalendar;
+}
 
-  const totalContributions = contributions.totalContributions;
+// Function to fetch all contributions from the user's first contribution to now, year by year
+async function fetchAllContributions(userCreationDate, now) {
+  let currentStart = new Date(userCreationDate);
+  let allContributionDays = [];
+  let totalContributionsSum = 0;
+
+  // We'll move in increments of up to one year.
+  while (currentStart < now) {
+    const currentEnd = new Date(Math.min(
+      new Date(currentStart.getFullYear() + 1, currentStart.getMonth(), currentStart.getDate()).getTime(),
+      now.getTime()
+    ));
+
+    const contributions = await fetchContributionsForPeriod(currentStart, currentEnd);
+    // Aggregate data
+    contributions.weeks.forEach((week) => {
+      week.contributionDays.forEach((day) => {
+        allContributionDays.push(day);
+      });
+    });
+    totalContributionsSum += contributions.totalContributions;
+
+    // Move to the end of this period
+    currentStart = currentEnd;
+  }
+
+  return { allContributionDays, totalContributionsSum };
+}
+
+function calculateStreaksAndTotals(allContributionDays) {
   let currentStreak = 0;
   let longestStreak = 0;
   let currentStreakStart = null;
   let longestStreakStart = null;
   let longestStreakEnd = null;
   let lastContributedDate = null;
-
   const today = new Date().toISOString().split('T')[0];
 
-  // Iterate over each week and each day in chronological order
-  contributions.weeks
-    .slice() // Create a shallow copy to prevent mutating the original data
-    .sort((a, b) => new Date(a.contributionDays[0].date) - new Date(b.contributionDays[0].date)) // Sort weeks chronologically
-    .forEach((week) => {
-      week.contributionDays
-        .slice()
-        .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort days chronologically
-        .forEach((day) => {
-          const { date, contributionCount } = day;
+  // Sort all days chronologically
+  allContributionDays.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-          if (date > today) return; // Skip future dates
+  for (const { date, contributionCount } of allContributionDays) {
+    if (date > today) continue; // skip future dates
+    const currentDay = new Date(date);
+    const dayOfWeek = currentDay.getUTCDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-          const currentDay = new Date(date);
-          const dayOfWeek = currentDay.getUTCDay(); // 0 (Sun) to 6 (Sat)
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-          if (contributionCount > 0) {
-            // Handle streak calculations
-            if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
-              currentStreak++;
-              if (currentStreak === 1) {
-                currentStreakStart = date;
-              }
-            } else {
-              currentStreak = 1; // Reset streak
-              currentStreakStart = date;
-            }
-            lastContributedDate = date;
-            if (currentStreak > longestStreak) {
-              longestStreak = currentStreak;
-              longestStreakStart = currentStreakStart;
-              longestStreakEnd = date;
-            }
-          } else if (isWeekend) {
-            // Include weekends in streak
-            currentStreak++;
-          } else {
-            // No contribution on weekday, reset streak
-            currentStreak = 0;
-            currentStreakStart = null;
-            lastContributedDate = null;
-          }
-        });
-    });
+    if (contributionCount > 0) {
+      // Handle streak
+      if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
+        currentStreak++;
+        if (currentStreak === 1) currentStreakStart = date;
+      } else {
+        currentStreak = 1;
+        currentStreakStart = date;
+      }
+      lastContributedDate = date;
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+        longestStreakStart = currentStreakStart;
+        longestStreakEnd = date;
+      }
+    } else if (isWeekend) {
+      // Include weekends in streak
+      currentStreak++;
+    } else {
+      currentStreak = 0;
+      currentStreakStart = null;
+      lastContributedDate = null;
+    }
+  }
 
   return {
-    totalContributions,
     currentStreak,
     longestStreak,
     currentStreakStart,
@@ -147,7 +163,7 @@ async function fetchContributions(fromDate, toDate) {
   };
 }
 
-// Function to fetch all repositories and determine the earliest commit date
+// Function to fetch earliest commit date across all repositories
 async function fetchEarliestCommitDate() {
   let hasNextPage = true;
   let endCursor = null;
@@ -171,11 +187,7 @@ async function fetchEarliestCommitDate() {
       }
     `;
 
-    const variables = {
-      username,
-      after: endCursor,
-    };
-
+    const variables = { username, after: endCursor };
     const data = await fetchFromGitHub(query, variables);
     const repositories = data.user.repositories.nodes;
 
@@ -249,22 +261,25 @@ async function generateSVG() {
   try {
     // Fetch user's account creation date
     const userCreationDate = await fetchUserCreationDate();
+    const now = new Date();
 
-    // Fetch contributions from account creation date to now
+    // Fetch all contributions in yearly chunks
+    const { allContributionDays, totalContributionsSum } = await fetchAllContributions(userCreationDate, now);
+
+    // Calculate streaks and totals from combined data
     const {
-      totalContributions,
       currentStreak,
       longestStreak,
       currentStreakStart,
       longestStreakStart,
       longestStreakEnd,
-    } = await fetchContributions(userCreationDate, new Date());
+    } = calculateStreaksAndTotals(allContributionDays);
 
-    // Fetch earliest commit date across all repositories (using createdAt as proxy)
+    // Fetch earliest commit date across all repositories
     const earliestCommitDate = await fetchEarliestCommitDate();
 
-    // Fetch most recent commit date (assuming it's today or latest in contributions)
-    const mostRecentCommitDate = new Date(); // Alternatively, find the latest commit date from contributions
+    // The most recent commit date (assume now or derived from contributions)
+    const mostRecentCommitDate = now;
 
     // Fetch top languages
     const topLanguages = await fetchTopLanguages();
@@ -349,7 +364,7 @@ async function generateSVG() {
     <!-- Section 1: Total Contributions -->
     <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        ${totalContributions}
+        ${totalContributionsSum}
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
@@ -370,7 +385,6 @@ async function generateSVG() {
         <mask id="ringMask">
           <rect x="-50" y="-40" width="100" height="100" fill="white" />
           <circle cx="0" cy="0" r="40" fill="black" />
-          <!-- Changed fill to black to hide the top of the ring -->
           <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
         </mask>
       </defs>
@@ -394,7 +408,7 @@ async function generateSVG() {
           : "N/A"}
       </text>
 
-      <!-- Fire icon positioned within the hole of the ring -->
+      <!-- Fire icon -->
       <g transform="translate(0, -60)" stroke-opacity="0" 
          style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
         <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
@@ -448,7 +462,20 @@ async function generateSVG() {
     console.log("SVG file created successfully.");
   } catch (error) {
     console.error("Error generating SVG:", error);
-    throw error; // Re-throw to ensure the workflow catches it
+    // Even if there's an error fetching contributions, let's still write a file with a different timestamp
+    // so that the repository can show it was updated.
+    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
+    const fallbackSVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+      <style>
+        .error { font: bold 20px sans-serif; fill: #FF4500; }
+        .footer { font: 10px sans-serif; fill: #AAAAAA; }
+      </style>
+      <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
+      <text class="error" x="50%" y="50%" text-anchor="middle">Error fetching data</text>
+      <text class="footer" x="20" y="280">Updated last at: ${lastUpdate}</text>
+    </svg>`;
+    fs.writeFileSync("stats_board.svg", fallbackSVG);
   }
 }
 
