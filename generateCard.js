@@ -1,23 +1,30 @@
 // generateCard.js
 const fs = require('fs');
+const path = require('path');
 
-const username = "Willpatpost";
-const token = process.env.GITHUB_TOKEN;
-const exclusionThreshold = 90.0; // Exclude languages that take up more than 90%
+// Configuration
+const USERNAME = process.env.GITHUB_USERNAME || "Willpatpost";
+const TOKEN = process.env.GITHUB_TOKEN;
+const EXCLUSION_THRESHOLD = parseFloat(process.env.EXCLUSION_THRESHOLD) || 90.0; // Percentage
+const GRAPHQL_API = "https://api.github.com/graphql";
 
-if (!token) {
+// Validate Environment Variables
+if (!TOKEN) {
   console.error("Error: GITHUB_TOKEN is not defined in the environment variables.");
   process.exit(1);
 }
 
-const GRAPHQL_API = "https://api.github.com/graphql";
+if (!USERNAME) {
+  console.error("Error: GITHUB_USERNAME is not defined in the environment variables.");
+  process.exit(1);
+}
 
 // Helper function to make GraphQL requests
 async function fetchFromGitHub(query, variables = {}) {
   const response = await fetch(GRAPHQL_API, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      "Authorization": `Bearer ${TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query, variables }),
@@ -37,27 +44,13 @@ async function fetchFromGitHub(query, variables = {}) {
   return data.data;
 }
 
-// Function to fetch the user's account creation date
-async function fetchUserCreationDate() {
+// Fetch User Information
+async function fetchUserInfo() {
   const query = `
     query ($username: String!) {
       user(login: $username) {
         createdAt
-      }
-    }
-  `;
-
-  const variables = { username };
-  const data = await fetchFromGitHub(query, variables);
-  return new Date(data.user.createdAt);
-}
-
-// Helper function to fetch a maximum 1-year window of contributions
-async function fetchContributionsForPeriod(fromDate, toDate) {
-  const query = `
-    query ($username: String!, $from: DateTime!, $to: DateTime!) {
-      user(login: $username) {
-        contributionsCollection(from: $from, to: $to) {
+        contributionsCollection {
           contributionCalendar {
             totalContributions
             weeks {
@@ -68,59 +61,93 @@ async function fetchContributionsForPeriod(fromDate, toDate) {
             }
           }
         }
+        repositories(first: 100, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC) {
+          nodes {
+            languages(first: 100) {
+              edges {
+                size
+                node {
+                  name
+                }
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
       }
     }
   `;
 
-  const variables = {
-    username,
-    from: fromDate.toISOString(),
-    to: toDate.toISOString(),
-  };
-
+  const variables = { username: USERNAME };
   const data = await fetchFromGitHub(query, variables);
-  return data.user.contributionsCollection.contributionCalendar;
+  return data.user;
 }
 
-// Function to fetch all contributions from the user's first contribution to now, year by year
-async function fetchAllContributions(userCreationDate, now) {
-  let currentStart = new Date(userCreationDate);
-  let allContributionDays = [];
-  let totalContributionsSum = 0;
+// Fetch All Repositories with Pagination
+async function fetchAllRepositories(endCursor = null, accumulatedRepos = []) {
+  const query = `
+    query ($username: String!, $after: String) {
+      user(login: $username) {
+        repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC, orderBy: {field: CREATED_AT, direction: ASC}) {
+          nodes {
+            languages(first: 100) {
+              edges {
+                size
+                node {
+                  name
+                }
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    }
+  `;
 
-  console.log(`Fetching all contributions from ${userCreationDate.toISOString()} to ${now.toISOString()}`);
+  const variables = { username: USERNAME, after: endCursor };
+  const data = await fetchFromGitHub(query, variables);
+  const repositories = accumulatedRepos.concat(data.user.repositories.nodes);
 
-  while (currentStart < now) {
-    const currentEnd = new Date(Math.min(
-      new Date(currentStart.getFullYear() + 1, currentStart.getMonth(), currentStart.getDate()).getTime(),
-      now.getTime()
-    ));
-
-    console.log(`Fetching contributions for the period: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
-
-    const contributions = await fetchContributionsForPeriod(currentStart, currentEnd);
-    const periodTotal = contributions.totalContributions;
-    totalContributionsSum += periodTotal;
-
-    console.log(`Period contributions: ${periodTotal}`);
-    console.log(`Running total contributions so far: ${totalContributionsSum}`);
-
-    contributions.weeks.forEach((week) => {
-      week.contributionDays.forEach((day) => {
-        allContributionDays.push(day);
-      });
-    });
-
-    // Move to the end of this period
-    currentStart = currentEnd;
+  if (data.user.repositories.pageInfo.hasNextPage) {
+    return fetchAllRepositories(data.user.repositories.pageInfo.endCursor, repositories);
+  } else {
+    return repositories;
   }
-
-  console.log(`Final total contributions after combining all periods: ${totalContributionsSum}`);
-
-  return { allContributionDays, totalContributionsSum };
 }
 
-function calculateStreaksAndTotals(allContributionDays) {
+// Calculate Top Languages
+function calculateTopLanguages(repositories) {
+  const languageBytes = {};
+
+  repositories.forEach(repo => {
+    repo.languages.edges.forEach(edge => {
+      const lang = edge.node.name;
+      const bytes = edge.size;
+      languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
+    });
+  });
+
+  const totalBytes = Object.values(languageBytes).reduce((sum, val) => sum + val, 0);
+  const filteredLanguages = Object.entries(languageBytes).filter(([_, bytes]) => (bytes / totalBytes) * 100 < EXCLUSION_THRESHOLD);
+
+  const newTotalBytes = filteredLanguages.reduce((sum, [_, bytes]) => sum + bytes, 0);
+  const topLanguages = filteredLanguages
+    .map(([lang, bytes]) => ({ lang, percent: (bytes / newTotalBytes) * 100 }))
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 5);
+
+  return topLanguages;
+}
+
+// Calculate Streaks
+function calculateStreaks(contributionDays) {
   let currentStreak = 0;
   let longestStreak = 0;
   let currentStreakStart = null;
@@ -130,16 +157,13 @@ function calculateStreaksAndTotals(allContributionDays) {
   const today = new Date().toISOString().split('T')[0];
 
   // Sort all days chronologically
-  allContributionDays.sort((a, b) => new Date(a.date) - new Date(b.date));
+  contributionDays.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  for (const { date, contributionCount } of allContributionDays) {
-    if (date > today) continue; // skip future dates
-    const currentDay = new Date(date);
-    const dayOfWeek = currentDay.getUTCDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  contributionDays.forEach(({ date, contributionCount }) => {
+    if (date > today) return; // Skip future dates
+    const isWeekend = isDateWeekend(new Date(date));
 
     if (contributionCount > 0) {
-      // Handle streak
       if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
         currentStreak++;
         if (currentStreak === 1) currentStreakStart = date;
@@ -148,6 +172,7 @@ function calculateStreaksAndTotals(allContributionDays) {
         currentStreakStart = date;
       }
       lastContributedDate = date;
+
       if (currentStreak > longestStreak) {
         longestStreak = currentStreak;
         longestStreakStart = currentStreakStart;
@@ -161,7 +186,7 @@ function calculateStreaksAndTotals(allContributionDays) {
       currentStreakStart = null;
       lastContributedDate = null;
     }
-  }
+  });
 
   return {
     currentStreak,
@@ -172,150 +197,49 @@ function calculateStreaksAndTotals(allContributionDays) {
   };
 }
 
-// Function to fetch earliest commit date across all repositories
-async function fetchEarliestCommitDate() {
-  let hasNextPage = true;
-  let endCursor = null;
-  let earliestCommitDate = null;
-
-  while (hasNextPage) {
-    const query = `
-      query ($username: String!, $after: String) {
-        user(login: $username) {
-          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC, orderBy: {field: CREATED_AT, direction: ASC}) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            nodes {
-              name
-              createdAt
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = { username, after: endCursor };
-    const data = await fetchFromGitHub(query, variables);
-    const repositories = data.user.repositories.nodes;
-
-    for (const repo of repositories) {
-      const repoCreatedAt = new Date(repo.createdAt);
-      if (!earliestCommitDate || repoCreatedAt < earliestCommitDate) {
-        earliestCommitDate = repoCreatedAt;
-      }
-    }
-
-    hasNextPage = data.user.repositories.pageInfo.hasNextPage;
-    endCursor = data.user.repositories.pageInfo.endCursor;
-  }
-
-  return earliestCommitDate;
+// Helper function to check if a date is a weekend
+function isDateWeekend(date) {
+  const day = date.getUTCDay();
+  return day === 0 || day === 6;
 }
 
-// Function to fetch top languages
-async function fetchTopLanguages() {
-  let page = 1;
-  const languages = {};
+// Helper function to check if two dates are consecutive
+function isNextDay(previousDate, currentDate) {
+  const prev = new Date(previousDate);
+  const curr = new Date(currentDate);
 
-  while (true) {
-    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100&affiliation=owner&sort=updated`;
-    const response = await fetch(url, {
-      headers: { "Authorization": `Bearer ${token}` },
-    });
+  // Normalize both dates to UTC midnight
+  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
+  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error fetching repositories: ${errorText}`);
-      throw new Error("Failed to fetch repositories from GitHub.");
-    }
-
-    const repos = await response.json();
-    if (!repos.length) break;
-
-    for (const repo of repos) {
-      const langUrl = repo.languages_url;
-      const langResponse = await fetch(langUrl, {
-        headers: { "Authorization": `Bearer ${token}` },
-      });
-
-      if (!langResponse.ok) {
-        const errorText = await langResponse.text();
-        console.error(`Error fetching languages for repo ${repo.name}: ${errorText}`);
-        continue; // Skip this repo
-      }
-
-      const langData = await langResponse.json();
-      for (const [lang, bytes] of Object.entries(langData)) {
-        languages[lang] = (languages[lang] || 0) + bytes;
-      }
-    }
-    page++;
-  }
-
-  const totalBytes = Object.values(languages).reduce((sum, val) => sum + val, 0);
-  const filteredLanguages = Object.fromEntries(
-    Object.entries(languages).filter(([_, bytes]) => (bytes / totalBytes) * 100 < exclusionThreshold)
-  );
-
-  const newTotalBytes = Object.values(filteredLanguages).reduce((sum, val) => sum + val, 0);
-  return Object.entries(filteredLanguages)
-    .map(([lang, bytes]) => ({ lang, percent: (bytes / newTotalBytes) * 100 }))
-    .sort((a, b) => b.percent - a.percent)
-    .slice(0, 5);
+  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
+  return diffDays === 1;
 }
 
-async function generateSVG() {
-  try {
-    // Fetch user's account creation date
-    const userCreationDate = await fetchUserCreationDate();
-    const now = new Date();
+// Format Date
+function formatDate(date) {
+  if (!date) return "N/A";
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return date.toLocaleDateString(undefined, options);
+}
 
-    // Fetch all contributions in yearly chunks
-    const { allContributionDays, totalContributionsSum } = await fetchAllContributions(userCreationDate, now);
+// Generate SVG Content
+function generateSVGContent({ totalContributions, commitDateRange, streaks, topLanguages, lastUpdate }) {
+  const { currentStreak, longestStreak, currentStreakStart, longestStreakStart, longestStreakEnd } = streaks;
 
-    // Calculate streaks and totals from combined data
-    const {
-      currentStreak,
-      longestStreak,
-      currentStreakStart,
-      longestStreakStart,
-      longestStreakEnd,
-    } = calculateStreaksAndTotals(allContributionDays);
+  const languagesText = topLanguages
+    .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
+    .join('');
 
-    // Fetch earliest commit date across all repositories
-    const earliestCommitDate = await fetchEarliestCommitDate();
+  const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
+    ? `${formatDate(new Date(longestStreakStart))} - ${formatDate(new Date(longestStreakEnd))}`
+    : "N/A";
 
-    // The most recent commit date (assume now)
-    const mostRecentCommitDate = now;
+  const currentStreakDates = currentStreak > 0 && currentStreakStart
+    ? `${formatDate(new Date(currentStreakStart))} - ${formatDate(new Date())}`
+    : "N/A";
 
-    // Fetch top languages
-    const topLanguages = await fetchTopLanguages();
-
-    const languagesText = topLanguages
-      .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
-      .join('');
-
-    // Format dates
-    const formatDate = (date) => {
-      if (!date) return "N/A";
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return date.toLocaleDateString(undefined, options);
-    };
-
-    const commitDateRange = userCreationDate
-      ? `${formatDate(userCreationDate)} - ${formatDate(mostRecentCommitDate)}`
-      : "N/A";
-
-    const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
-      ? `${formatDate(new Date(longestStreakStart))} - ${formatDate(new Date(longestStreakEnd))}`
-      : "N/A";
-
-    // Display last update in EST
-    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
-
-    const svgContent = `
+  return `
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
        style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
     <style>
@@ -373,7 +297,7 @@ async function generateSVG() {
     <!-- Section 1: Total Contributions -->
     <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        ${totalContributionsSum}
+        ${totalContributions}
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
@@ -412,9 +336,7 @@ async function generateSVG() {
       
       <!-- Date Range -->
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-        ${currentStreak > 0 && currentStreakStart
-          ? `${formatDate(new Date(currentStreakStart))} - ${formatDate(mostRecentCommitDate)}`
-          : "N/A"}
+        ${currentStreakDates}
       </text>
 
       <!-- Fire icon -->
@@ -465,40 +387,73 @@ async function generateSVG() {
       </text>
     </g>
   </svg>
-    `;
+  `;
+}
 
-    fs.writeFileSync("stats_board.svg", svgContent);
+// Generate Fallback SVG in Case of Error
+function generateFallbackSVG(lastUpdate) {
+  return `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+    <style>
+      .error { font: bold 20px sans-serif; fill: #FF4500; }
+      .footer { font: 10px sans-serif; fill: #AAAAAA; }
+    </style>
+    <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
+    <text class="error" x="50%" y="50%" text-anchor="middle">Error fetching data</text>
+    <text class="footer" x="20" y="280">Updated last at: ${lastUpdate}</text>
+  </svg>`;
+}
+
+// Main Function
+async function generateSVG() {
+  try {
+    // Fetch User Information
+    const userInfo = await fetchUserInfo();
+
+    // Calculate Total Contributions
+    const totalContributions = userInfo.contributionsCollection.contributionCalendar.totalContributions;
+
+    // Flatten Contribution Days
+    const allContributionDays = userInfo.contributionsCollection.contributionCalendar.weeks.flatMap(week => week.contributionDays);
+
+    // Calculate Streaks
+    const streaks = calculateStreaks(allContributionDays);
+
+    // Fetch All Repositories
+    const repositories = await fetchAllRepositories();
+
+    // Calculate Top Languages
+    const topLanguages = calculateTopLanguages(repositories);
+
+    // Format Commit Date Range
+    const commitDateRange = `${formatDate(new Date(userInfo.createdAt))} - ${formatDate(new Date())}`;
+
+    // Last Update Timestamp in EST
+    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
+
+    // Generate SVG Content
+    const svgContent = generateSVGContent({
+      totalContributions,
+      commitDateRange,
+      streaks,
+      topLanguages,
+      lastUpdate,
+    });
+
+    // Write SVG to File
+    fs.writeFileSync(path.join(__dirname, "stats_board.svg"), svgContent);
     console.log("SVG file created successfully.");
   } catch (error) {
     console.error("Error generating SVG:", error);
-    // Even if there's an error, still write a fallback SVG with a different timestamp
+    // Generate Fallback SVG
     const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
-    const fallbackSVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
-      <style>
-        .error { font: bold 20px sans-serif; fill: #FF4500; }
-        .footer { font: 10px sans-serif; fill: #AAAAAA; }
-      </style>
-      <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
-      <text class="error" x="50%" y="50%" text-anchor="middle">Error fetching data</text>
-      <text class="footer" x="20" y="280">Updated last at: ${lastUpdate}</text>
-    </svg>`;
-    fs.writeFileSync("stats_board.svg", fallbackSVG);
+    const fallbackSVG = generateFallbackSVG(lastUpdate);
+    fs.writeFileSync(path.join(__dirname, "stats_board.svg"), fallbackSVG);
+    console.log("Fallback SVG file created.");
   }
 }
 
-// Helper function to check if two dates are consecutive
-function isNextDay(previousDate, currentDate) {
-  const prev = new Date(previousDate);
-  const curr = new Date(currentDate);
-
-  // Normalize both dates to UTC midnight
-  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
-  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
-
-  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
-  return diffDays === 1;
-}
-
-// Main function
-generateSVG().catch((error) => console.error("Error generating SVG:", error));
+// Execute the Main Function
+generateSVG().catch((error) => {
+  console.error("Unhandled Error:", error);
+});
