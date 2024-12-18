@@ -8,7 +8,7 @@
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
-    "dotenv": "^16.0.3" // If you decide to use dotenv for environment variables
+    "dotenv": "^16.0.3"
   },
   "engines": {
     "node": ">=18.0.0"
