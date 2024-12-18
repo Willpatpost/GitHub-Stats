@@ -3,34 +3,33 @@ name: Update GitHub Stats
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Runs every 5 minutes
-  workflow_dispatch:        # Allows for manual triggering
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write           # Grants write permissions to the repository
+  contents: write
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0       # Fetch all branches
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Using Node.js v18+
+          node-version: '18'
 
       - name: Install Dependencies
         run: npm install
-        # If you have dependencies, list them here
 
       - name: Run the stats generation script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: YourGitHubUsername
         run: |
           echo "Running generateCard.js..."
           node generateCard.js
@@ -63,4 +62,4 @@ jobs:
             git push origin main
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Using GitHub's token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
