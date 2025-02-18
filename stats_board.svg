@@ -56,13 +56,13 @@
     <!-- Section 1: Total Contributions -->
     <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        2575
+        2576
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
       </text>
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
-        Oct 4, 2023 - Feb 17, 2025
+        Oct 4, 2023 - Feb 18, 2025
       </text>
     </g>
 
@@ -85,7 +85,7 @@
       <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" 
             font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
             font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
-        85
+        86
       </text>
       
       <!-- Label -->
@@ -95,7 +95,7 @@
       
       <!-- Date Range -->
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-        Nov 25, 2024 - Feb 17, 2025
+        Nov 25, 2024 - Feb 18, 2025
       </text>
 
       <!-- Fire icon -->
@@ -119,13 +119,13 @@
     <!-- Section 3: Longest Streak -->
     <g transform="translate(500, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
-        85
+        86
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
         Longest Streak
       </text>
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
-        Nov 25, 2024 - Feb 17, 2025
+        Nov 25, 2024 - Feb 18, 2025
       </text>
     </g>
 
@@ -142,7 +142,7 @@
     <!-- Footer: Last Update Timestamp -->
     <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: 2/17/2025, 6:57:24 PM EST
+        Updated last at: 2/17/2025, 8:01:04 PM EST
       </text>
     </g>
   </svg>
