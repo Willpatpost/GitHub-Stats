@@ -135,14 +135,14 @@
         Top Languages Used
       </text>
       <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-        <tspan x="0" dy="2.0em">Python: 44.45%</tspan><tspan x="0" dy="2.0em">JavaScript: 31.75%</tspan><tspan x="0" dy="2.0em">HTML: 13.01%</tspan><tspan x="0" dy="2.0em">CSS: 7.27%</tspan><tspan x="0" dy="2.0em">Java: 3.53%</tspan>
+        <tspan x="0" dy="2.0em">Python: 44.74%</tspan><tspan x="0" dy="2.0em">JavaScript: 31.54%</tspan><tspan x="0" dy="2.0em">HTML: 12.85%</tspan><tspan x="0" dy="2.0em">CSS: 7.31%</tspan><tspan x="0" dy="2.0em">Java: 3.55%</tspan>
       </text>
     </g>
 
     <!-- Footer: Last Update Timestamp -->
     <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: 3/22/2025, 10:44:35 PM EST
+        Updated last at: 3/22/2025, 11:23:28 PM EST
       </text>
     </g>
   </svg>
