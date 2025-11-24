@@ -56,7 +56,7 @@
     <!-- Section 1: Total Contributions -->
     <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        3404
+        3405
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
@@ -85,7 +85,7 @@
       <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" 
             font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
             font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
-        0
+        3
       </text>
       
       <!-- Label -->
@@ -95,7 +95,7 @@
       
       <!-- Date Range -->
       <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-        N/A
+        Nov 22, 2025 - Nov 24, 2025
       </text>
 
       <!-- Fire icon -->
@@ -135,14 +135,14 @@
         Top Languages Used
       </text>
       <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-        <tspan x="0" dy="2.0em">JavaScript: 37.72%</tspan><tspan x="0" dy="2.0em">Python: 36.63%</tspan><tspan x="0" dy="2.0em">HTML: 15.64%</tspan><tspan x="0" dy="2.0em">CSS: 7.11%</tspan><tspan x="0" dy="2.0em">Java: 2.91%</tspan>
+        <tspan x="0" dy="2.0em">JavaScript: 36.24%</tspan><tspan x="0" dy="2.0em">Python: 35.19%</tspan><tspan x="0" dy="2.0em">HTML: 15.02%</tspan><tspan x="0" dy="2.0em">CSS: 6.83%</tspan><tspan x="0" dy="2.0em">C: 3.88%</tspan>
       </text>
     </g>
 
     <!-- Footer: Last Update Timestamp -->
     <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: 11/24/2025, 2:57:32 PM EST
+        Updated last at: 11/24/2025, 3:17:48 PM EST
       </text>
     </g>
   </svg>
