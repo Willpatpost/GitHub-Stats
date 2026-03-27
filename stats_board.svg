@@ -56,7 +56,7 @@
     <!-- Section 1: Total Contributions -->
     <g transform="translate(100, 100)">
       <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        1615
+        1823
       </text>
       <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
         Total Contributions
@@ -135,14 +135,14 @@
         Top Languages Used
       </text>
       <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-        <tspan x="0" dy="2.0em">JavaScript: 53.53%</tspan><tspan x="0" dy="2.0em">Python: 19.02%</tspan><tspan x="0" dy="2.0em">HTML: 15.80%</tspan><tspan x="0" dy="2.0em">CSS: 7.54%</tspan><tspan x="0" dy="2.0em">C: 2.92%</tspan>
+        <tspan x="0" dy="2.0em">JavaScript: 65.96%</tspan><tspan x="0" dy="2.0em">HTML: 13.45%</tspan><tspan x="0" dy="2.0em">Python: 11.65%</tspan><tspan x="0" dy="2.0em">CSS: 6.42%</tspan><tspan x="0" dy="2.0em">C: 1.79%</tspan>
       </text>
     </g>
 
     <!-- Footer: Last Update Timestamp -->
     <g transform="translate(20, 280)">
       <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: 3/27/2026, 1:26:35 AM EST
+        Updated last at: 3/27/2026, 2:43:02 AM EST
       </text>
     </g>
   </svg>
