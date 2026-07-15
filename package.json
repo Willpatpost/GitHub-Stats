@@ -4,7 +4,8 @@
   "description": "GitHub Stats Board Generation",
   "main": "generateCard.js",
   "scripts": {
-    "start": "node generateCard.js"
+    "start": "node generateCard.js",
+    "test": "node --test"
   },
   "dependencies": {}
 }

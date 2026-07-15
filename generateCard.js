@@ -1,23 +1,25 @@
-// generateCard.js
-const fs = require('fs');
-
-const username = "Willpatpost";
-const token = process.env.GITHUB_TOKEN;
-const exclusionThreshold = 90.0; // Exclude languages that take up more than 90%
-
-if (!token) {
-  console.error("Error: GITHUB_TOKEN is not defined in the environment variables.");
-  process.exit(1);
-}
+const fs = require("fs");
 
 const GRAPHQL_API = "https://api.github.com/graphql";
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Helper function to make GraphQL requests
+const config = {
+  username: process.env.GITHUB_USERNAME || "Willpatpost",
+  token: process.env.GITHUB_TOKEN,
+  outputPath: process.env.OUTPUT_PATH || "stats_board.svg",
+  timeZone: process.env.STATS_TIME_ZONE || "America/New_York",
+  languageExclusionThreshold: Number(process.env.LANGUAGE_EXCLUSION_THRESHOLD || 90),
+};
+
 async function fetchFromGitHub(query, variables = {}) {
+  if (!config.token) {
+    throw new Error("GITHUB_TOKEN is not defined in the environment variables.");
+  }
+
   const response = await fetch(GRAPHQL_API, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${config.token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query, variables }),
@@ -25,19 +27,17 @@ async function fetchFromGitHub(query, variables = {}) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("GitHub API Error:", errorText);
-    throw new Error("Failed to fetch data from GitHub API.");
+    throw new Error(`GitHub API request failed (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
   if (data.errors) {
-    console.error("GitHub API Error:", JSON.stringify(data.errors, null, 2));
-    throw new Error("Failed to fetch data from GitHub API.");
+    throw new Error(`GitHub API returned errors: ${JSON.stringify(data.errors, null, 2)}`);
   }
+
   return data.data;
 }
 
-// Function to fetch the user's account creation date
 async function fetchUserCreationDate() {
   const query = `
     query ($username: String!) {
@@ -47,12 +47,10 @@ async function fetchUserCreationDate() {
     }
   `;
 
-  const variables = { username };
-  const data = await fetchFromGitHub(query, variables);
+  const data = await fetchFromGitHub(query, { username: config.username });
   return new Date(data.user.createdAt);
 }
 
-// Helper function to fetch a maximum 1-year window of contributions
 async function fetchContributionsForPeriod(fromDate, toDate) {
   const query = `
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
@@ -73,7 +71,7 @@ async function fetchContributionsForPeriod(fromDate, toDate) {
   `;
 
   const variables = {
-    username,
+    username: config.username,
     from: fromDate.toISOString(),
     to: toDate.toISOString(),
   };
@@ -82,423 +80,383 @@ async function fetchContributionsForPeriod(fromDate, toDate) {
   return data.user.contributionsCollection.contributionCalendar;
 }
 
-// Function to fetch all contributions from the user's first contribution to now, year by year
 async function fetchAllContributions(userCreationDate, now) {
   let currentStart = new Date(userCreationDate);
-  let allContributionDays = [];
+  const allContributionDays = [];
   let totalContributionsSum = 0;
 
-  console.log(`Fetching all contributions from ${userCreationDate.toISOString()} to ${now.toISOString()}`);
+  console.log(`Fetching contributions for ${config.username}`);
 
   while (currentStart < now) {
-    const currentEnd = new Date(Math.min(
-      new Date(currentStart.getFullYear() + 1, currentStart.getMonth(), currentStart.getDate()).getTime(),
-      now.getTime()
-    ));
+    const oneYearLater = new Date(currentStart);
+    oneYearLater.setUTCFullYear(oneYearLater.getUTCFullYear() + 1);
+    const currentEnd = new Date(Math.min(oneYearLater.getTime(), now.getTime()));
 
-    console.log(`Fetching contributions for the period: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
-
+    console.log(`Contribution window: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
     const contributions = await fetchContributionsForPeriod(currentStart, currentEnd);
-    const periodTotal = contributions.totalContributions;
-    totalContributionsSum += periodTotal;
+    totalContributionsSum += contributions.totalContributions;
 
-    console.log(`Period contributions: ${periodTotal}`);
-    console.log(`Running total contributions so far: ${totalContributionsSum}`);
-
-    contributions.weeks.forEach((week) => {
-      week.contributionDays.forEach((day) => {
+    for (const week of contributions.weeks) {
+      for (const day of week.contributionDays) {
         allContributionDays.push(day);
-      });
-    });
+      }
+    }
 
-    // Move to the end of this period
     currentStart = currentEnd;
   }
-
-  console.log(`Final total contributions after combining all periods: ${totalContributionsSum}`);
 
   return { allContributionDays, totalContributionsSum };
 }
 
-function calculateStreaksAndTotals(allContributionDays) {
+async function fetchRepositoryInsights() {
+  const query = `
+    query ($username: String!, $after: String) {
+      user(login: $username) {
+        repositories(
+          first: 100
+          after: $after
+          isFork: false
+          ownerAffiliations: OWNER
+          privacy: PUBLIC
+          orderBy: { field: UPDATED_AT, direction: DESC }
+        ) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            defaultBranchRef {
+              target {
+                ... on Commit {
+                  committedDate
+                }
+              }
+            }
+            languages(first: 20, orderBy: { field: SIZE, direction: DESC }) {
+              edges {
+                size
+                node {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const languages = {};
+  let earliestCommitDate = null;
+  let mostRecentCommitDate = null;
+  let hasNextPage = true;
+  let endCursor = null;
+
+  while (hasNextPage) {
+    const data = await fetchFromGitHub(query, { username: config.username, after: endCursor });
+    const repositories = data.user.repositories;
+
+    for (const repo of repositories.nodes) {
+      const committedDate = repo.defaultBranchRef?.target?.committedDate;
+      if (committedDate) {
+        const date = new Date(committedDate);
+        if (!earliestCommitDate || date < earliestCommitDate) earliestCommitDate = date;
+        if (!mostRecentCommitDate || date > mostRecentCommitDate) mostRecentCommitDate = date;
+      }
+
+      for (const edge of repo.languages.edges) {
+        const name = edge.node.name;
+        languages[name] = (languages[name] || 0) + edge.size;
+      }
+    }
+
+    hasNextPage = repositories.pageInfo.hasNextPage;
+    endCursor = repositories.pageInfo.endCursor;
+  }
+
+  return {
+    earliestCommitDate,
+    mostRecentCommitDate,
+    topLanguages: calculateTopLanguages(languages),
+  };
+}
+
+function calculateTopLanguages(languages) {
+  const totalBytes = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0);
+  if (totalBytes === 0) return [];
+
+  const filteredEntries = Object.entries(languages).filter(([, bytes]) => {
+    return (bytes / totalBytes) * 100 < config.languageExclusionThreshold;
+  });
+
+  const entries = filteredEntries.length > 0 ? filteredEntries : Object.entries(languages);
+  const filteredTotalBytes = entries.reduce((sum, [, bytes]) => sum + bytes, 0);
+
+  return entries
+    .map(([lang, bytes]) => ({ lang, percent: (bytes / filteredTotalBytes) * 100 }))
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 5);
+}
+
+function calculateStreaksAndTotals(allContributionDays, today = new Date()) {
+  const contributionsByDate = new Map();
+  for (const { date, contributionCount } of allContributionDays) {
+    contributionsByDate.set(date, (contributionsByDate.get(date) || 0) + contributionCount);
+  }
+
+  const sortedDates = [...contributionsByDate.keys()].sort();
+  const firstDate = sortedDates[0];
+  if (!firstDate) {
+    return emptyStreaks();
+  }
+
+  const todayDate = toDateString(today);
+  let currentDate = firstDate;
   let currentStreak = 0;
-  let longestStreak = 0;
   let currentStreakStart = null;
+  let lastStreakEnd = null;
+  let longestStreak = 0;
   let longestStreakStart = null;
   let longestStreakEnd = null;
-  let lastContributedDate = null;
-  const today = new Date().toISOString().split('T')[0];
 
-  // Sort all days chronologically
-  allContributionDays.sort((a, b) => new Date(a.date) - new Date(b.date));
+  while (currentDate <= todayDate) {
+    const contributionCount = contributionsByDate.get(currentDate) || 0;
+    const countsTowardStreak = contributionCount > 0 || (currentStreak > 0 && isWeekend(currentDate));
 
-  for (const { date, contributionCount } of allContributionDays) {
-    if (date > today) continue; // skip future dates
-    const currentDay = new Date(date);
-    const dayOfWeek = currentDay.getUTCDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    if (countsTowardStreak) {
+      if (currentStreak === 0) currentStreakStart = currentDate;
+      currentStreak += 1;
+      lastStreakEnd = currentDate;
 
-    if (contributionCount > 0) {
-      // Handle streak
-      if (!lastContributedDate || isNextDay(lastContributedDate, date)) {
-        currentStreak++;
-        if (currentStreak === 1) currentStreakStart = date;
-      } else {
-        currentStreak = 1;
-        currentStreakStart = date;
-      }
-      lastContributedDate = date;
       if (currentStreak > longestStreak) {
         longestStreak = currentStreak;
         longestStreakStart = currentStreakStart;
-        longestStreakEnd = date;
+        longestStreakEnd = currentDate;
       }
-    } else if (isWeekend) {
-      // Include weekends in streak
-      currentStreak++;
     } else {
       currentStreak = 0;
       currentStreakStart = null;
-      lastContributedDate = null;
     }
+
+    currentDate = addDays(currentDate, 1);
   }
 
   return {
     currentStreak,
     longestStreak,
     currentStreakStart,
+    currentStreakEnd: currentStreak > 0 ? lastStreakEnd : null,
     longestStreakStart,
     longestStreakEnd,
   };
 }
 
-// Function to fetch earliest commit date across all repositories
-async function fetchEarliestCommitDate() {
-  let hasNextPage = true;
-  let endCursor = null;
-  let earliestCommitDate = null;
-
-  while (hasNextPage) {
-    const query = `
-      query ($username: String!, $after: String) {
-        user(login: $username) {
-          repositories(first: 100, after: $after, isFork: false, ownerAffiliations: OWNER, privacy: PUBLIC, orderBy: {field: CREATED_AT, direction: ASC}) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            nodes {
-              name
-              createdAt
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = { username, after: endCursor };
-    const data = await fetchFromGitHub(query, variables);
-    const repositories = data.user.repositories.nodes;
-
-    for (const repo of repositories) {
-      const repoCreatedAt = new Date(repo.createdAt);
-      if (!earliestCommitDate || repoCreatedAt < earliestCommitDate) {
-        earliestCommitDate = repoCreatedAt;
-      }
-    }
-
-    hasNextPage = data.user.repositories.pageInfo.hasNextPage;
-    endCursor = data.user.repositories.pageInfo.endCursor;
-  }
-
-  return earliestCommitDate;
+function emptyStreaks() {
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    currentStreakStart: null,
+    currentStreakEnd: null,
+    longestStreakStart: null,
+    longestStreakEnd: null,
+  };
 }
 
-// Function to fetch top languages
-async function fetchTopLanguages() {
-  let page = 1;
-  const languages = {};
+function toDateString(date) {
+  return date.toISOString().slice(0, 10);
+}
 
-  while (true) {
-    const url = `https://api.github.com/users/${username}/repos?page=${page}&per_page=100&affiliation=owner&sort=updated`;
-    const response = await fetch(url, {
-      headers: { "Authorization": `Bearer ${token}` },
-    });
+function addDays(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return toDateString(date);
+}
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error fetching repositories: ${errorText}`);
-      throw new Error("Failed to fetch repositories from GitHub.");
+function isWeekend(dateString) {
+  const dayOfWeek = new Date(`${dateString}T00:00:00.000Z`).getUTCDay();
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
+function formatDate(date, timeZone = config.timeZone) {
+  if (!date) return "N/A";
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone,
+  }).format(date);
+}
+
+function formatDateRange(start, end) {
+  if (!start || !end) return "N/A";
+  return `${formatDate(new Date(`${start}T00:00:00.000Z`), "UTC")} - ${formatDate(new Date(`${end}T00:00:00.000Z`), "UTC")}`;
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildSvg({
+  totalContributions,
+  commitDateRange,
+  currentStreak,
+  currentStreakDates,
+  longestStreak,
+  longestStreakDates,
+  topLanguages,
+  lastUpdate,
+}) {
+  const languagesText = topLanguages.length
+    ? topLanguages
+        .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${escapeXml(lang)}: ${percent.toFixed(2)}%</tspan>`)
+        .join("")
+    : '<tspan x="0" dy="2.0em">No language data</tspan>';
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px" role="img" aria-labelledby="title desc">
+  <title id="title">${escapeXml(config.username)} GitHub stats board</title>
+  <desc id="desc">GitHub contribution, streak, and language statistics generated automatically.</desc>
+  <style>
+    @keyframes fadein {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
     }
 
-    const repos = await response.json();
-    if (!repos.length) break;
-
-    for (const repo of repos) {
-      const langUrl = repo.languages_url;
-      const langResponse = await fetch(langUrl, {
-        headers: { "Authorization": `Bearer ${token}` },
-      });
-
-      if (!langResponse.ok) {
-        const errorText = await langResponse.text();
-        console.error(`Error fetching languages for repo ${repo.name}: ${errorText}`);
-        continue; // Skip this repo
-      }
-
-      const langData = await langResponse.json();
-      for (const [lang, bytes] of Object.entries(langData)) {
-        languages[lang] = (languages[lang] || 0) + bytes;
-      }
+    @keyframes currstreak {
+      0% { font-size: 3px; opacity: 0.2; }
+      80% { font-size: 34px; opacity: 1; }
+      100% { font-size: 28px; opacity: 1; }
     }
-    page++;
-  }
 
-  const totalBytes = Object.values(languages).reduce((sum, val) => sum + val, 0);
-  const filteredLanguages = Object.fromEntries(
-    Object.entries(languages).filter(([_, bytes]) => (bytes / totalBytes) * 100 < exclusionThreshold)
-  );
+    .title { font: bold 16px sans-serif; fill: #FFD700; }
+    .stat { font: bold 28px sans-serif; fill: #FFFFFF; }
+    .label { font: 14px sans-serif; fill: #AAAAAA; }
+    .divider { stroke: #555555; stroke-width: 2; stroke-dasharray: 4; }
+    .date { font: 12px sans-serif; fill: #AAAAAA; }
+    .footer { font: 10px sans-serif; fill: #AAAAAA; }
+  </style>
 
-  const newTotalBytes = Object.values(filteredLanguages).reduce((sum, val) => sum + val, 0);
-  return Object.entries(filteredLanguages)
-    .map(([lang, bytes]) => ({ lang, percent: (bytes / newTotalBytes) * 100 }))
-    .sort((a, b) => b.percent - a.percent)
-    .slice(0, 5);
+  <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
+  <line x1="200" y1="25" x2="200" y2="275" class="divider" />
+  <line x1="400" y1="25" x2="400" y2="275" class="divider" />
+  <line x1="600" y1="25" x2="600" y2="275" class="divider" />
+
+  <g transform="translate(100, 100)">
+    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">${escapeXml(totalContributions)}</text>
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">Total Contributions</text>
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">${escapeXml(commitDateRange)}</text>
+  </g>
+
+  <g style="isolation: isolate" transform="translate(300, 100)">
+    <g mask="url(#ringMask)">
+      <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
+    </g>
+    <defs>
+      <mask id="ringMask">
+        <rect x="-50" y="-40" width="100" height="100" fill="white" />
+        <circle cx="0" cy="0" r="40" fill="black" />
+        <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
+      </mask>
+    </defs>
+    <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">${escapeXml(currentStreak)}</text>
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">Current Streak</text>
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">${escapeXml(currentStreakDates)}</text>
+    <g transform="translate(0, -60)" stroke-opacity="0" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
+      <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
+      <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 C -3.23 9.2 -4.79 7.53 -4.79 5.47 L -4.76 5.11 C -6.78 7.51 -8 10.62 -8 13.99 C -8 18.41 -4.42 22 0 22 C 4.42 22 8 18.41 8 13.99 C 8 8.6 5.41 3.79 1.5 0.67 Z M -0.29 19 C -2.07 19 -3.51 17.6 -3.51 15.86 C -3.51 14.24 -2.46 13.1 -0.7 12.74 C 1.07 12.38 2.9 11.53 3.92 10.16 C 4.31 11.45 4.51 12.81 4.51 14.2 C 4.51 16.85 2.36 19 -0.29 19 Z" fill="#FF4500" stroke-opacity="0"/>
+    </g>
+  </g>
+
+  <g transform="translate(500, 100)">
+    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">${escapeXml(longestStreak)}</text>
+    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">Longest Streak</text>
+    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">${escapeXml(longestStreakDates)}</text>
+  </g>
+
+  <g transform="translate(700, 100)">
+    <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">Top Languages Used</text>
+    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">${languagesText}</text>
+  </g>
+
+  <g transform="translate(20, 280)">
+    <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">Updated last at: ${escapeXml(lastUpdate)}</text>
+  </g>
+</svg>
+`;
+}
+
+function buildFallbackSvg(error) {
+  const lastUpdate = formatTimestamp(new Date());
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-label="GitHub stats board error">
+  <style>
+    .error { font: bold 20px sans-serif; fill: #FF4500; }
+    .hint { font: 13px sans-serif; fill: #AAAAAA; }
+    .footer { font: 10px sans-serif; fill: #AAAAAA; }
+  </style>
+  <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
+  <text class="error" x="50%" y="45%" text-anchor="middle">Error fetching GitHub stats</text>
+  <text class="hint" x="50%" y="55%" text-anchor="middle">${escapeXml(error.message)}</text>
+  <text class="footer" x="20" y="280">Updated last at: ${escapeXml(lastUpdate)}</text>
+</svg>
+`;
+}
+
+function formatTimestamp(date) {
+  const value = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: config.timeZone,
+    timeZoneName: "short",
+  }).format(date);
+  return value.replace(" EDT", " ET").replace(" EST", " ET");
 }
 
 async function generateSVG() {
   try {
-    // Fetch user's account creation date
     const userCreationDate = await fetchUserCreationDate();
     const now = new Date();
-
-    // Fetch all contributions in yearly chunks
     const { allContributionDays, totalContributionsSum } = await fetchAllContributions(userCreationDate, now);
+    const repositoryInsights = await fetchRepositoryInsights();
+    const streaks = calculateStreaksAndTotals(allContributionDays, now);
 
-    // Calculate streaks and totals from combined data
-    const {
-      currentStreak,
-      longestStreak,
-      currentStreakStart,
-      longestStreakStart,
-      longestStreakEnd,
-    } = calculateStreaksAndTotals(allContributionDays);
+    const firstActivityDate = repositoryInsights.earliestCommitDate || userCreationDate;
+    const latestActivityDate = repositoryInsights.mostRecentCommitDate || now;
+    const svgContent = buildSvg({
+      totalContributions: totalContributionsSum.toLocaleString("en-US"),
+      commitDateRange: `${formatDate(firstActivityDate)} - ${formatDate(latestActivityDate)}`,
+      currentStreak: streaks.currentStreak,
+      currentStreakDates: formatDateRange(streaks.currentStreakStart, streaks.currentStreakEnd),
+      longestStreak: streaks.longestStreak,
+      longestStreakDates: formatDateRange(streaks.longestStreakStart, streaks.longestStreakEnd),
+      topLanguages: repositoryInsights.topLanguages,
+      lastUpdate: formatTimestamp(now),
+    });
 
-    // Fetch earliest commit date across all repositories
-    const earliestCommitDate = await fetchEarliestCommitDate();
-
-    // The most recent commit date (assume now)
-    const mostRecentCommitDate = now;
-
-    // Fetch top languages
-    const topLanguages = await fetchTopLanguages();
-
-    const languagesText = topLanguages
-      .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${lang}: ${percent.toFixed(2)}%</tspan>`)
-      .join('');
-
-    // Format dates
-    const formatDate = (date) => {
-      if (!date) return "N/A";
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return date.toLocaleDateString(undefined, options);
-    };
-
-    const commitDateRange = userCreationDate
-      ? `${formatDate(userCreationDate)} - ${formatDate(mostRecentCommitDate)}`
-      : "N/A";
-
-    const longestStreakDates = longestStreak > 0 && longestStreakStart && longestStreakEnd
-      ? `${formatDate(new Date(longestStreakStart))} - ${formatDate(new Date(longestStreakEnd))}`
-      : "N/A";
-
-    // Display last update in EST
-    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
-
-    const svgContent = `
-  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-       style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px">
-    <style>
-      @keyframes fadein {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-      }
-
-      @keyframes currstreak {
-        0% { font-size: 3px; opacity: 0.2; }
-        80% { font-size: 34px; opacity: 1; }
-        100% { font-size: 28px; opacity: 1; }
-      }
-
-      .title {
-        font: bold 16px sans-serif;
-        fill: #FFD700;
-      }
-
-      .stat {
-        font: bold 28px sans-serif;
-        fill: #FFFFFF;
-      }
-
-      .label {
-        font: 14px sans-serif;
-        fill: #AAAAAA;
-      }
-
-      .divider {
-        stroke: #555555;
-        stroke-width: 2;
-        stroke-dasharray: 4; /* Dashed line style */
-      }
-
-      .date {
-        font: 12px sans-serif;
-        fill: #AAAAAA;
-      }
-
-      .footer {
-        font: 10px sans-serif;
-        fill: #AAAAAA;
-      }
-    </style>
-
-    <!-- Background -->
-    <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
-
-    <!-- Divider Lines -->
-    <line x1="200" y1="25" x2="200" y2="275" class="divider" />
-    <line x1="400" y1="25" x2="400" y2="275" class="divider" />
-    <line x1="600" y1="25" x2="600" y2="275" class="divider" />
-
-    <!-- Section 1: Total Contributions -->
-    <g transform="translate(100, 100)">
-      <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        ${totalContributionsSum}
-      </text>
-      <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">
-        Total Contributions
-      </text>
-      <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">
-        ${commitDateRange}
-      </text>
-    </g>
-
-    <!-- Section 2: Current Streak -->
-    <g style="isolation: isolate" transform="translate(300, 100)">
-      <!-- Ring around number with a mask to hide the top -->
-      <g mask="url(#ringMask)">
-        <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" 
-                style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
-      </g>
-      <defs>
-        <mask id="ringMask">
-          <rect x="-50" y="-40" width="100" height="100" fill="white" />
-          <circle cx="0" cy="0" r="40" fill="black" />
-          <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
-        </mask>
-      </defs>
-
-      <!-- Main Number -->
-      <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" 
-            font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" 
-            font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">
-        ${currentStreak}
-      </text>
-      
-      <!-- Label -->
-      <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">
-        Current Streak
-      </text>
-      
-      <!-- Date Range -->
-      <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">
-        ${currentStreak > 0 && currentStreakStart
-          ? `${formatDate(new Date(currentStreakStart))} - ${formatDate(mostRecentCommitDate)}`
-          : "N/A"}
-      </text>
-
-      <!-- Fire icon -->
-      <g transform="translate(0, -60)" stroke-opacity="0" 
-         style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-        <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
-        <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 
-                 C -3.23 9.2 -4.79 7.53 -4.79 5.47 L -4.76 5.11 
-                 C -6.78 7.51 -8 10.62 -8 13.99 C -8 18.41 -4.42 22 0 22 
-                 C 4.42 22 8 18.41 8 13.99 
-                 C 8 8.6 5.41 3.79 1.5 0.67 Z 
-                 M -0.29 19 C -2.07 19 -3.51 17.6 -3.51 15.86 
-                 C -3.51 14.24 -2.46 13.1 -0.7 12.74 
-                 C 1.07 12.38 2.9 11.53 3.92 10.16 
-                 C 4.31 11.45 4.51 12.81 4.51 14.2 
-                 C 4.51 16.85 2.36 19 -0.29 19 Z" 
-          fill="#FF4500" stroke-opacity="0"/>
-      </g>
-    </g>
-
-    <!-- Section 3: Longest Streak -->
-    <g transform="translate(500, 100)">
-      <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">
-        ${longestStreak}
-      </text>
-      <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">
-        Longest Streak
-      </text>
-      <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
-        ${longestStreakDates}
-      </text>
-    </g>
-
-    <!-- Section 4: Top Languages -->
-    <g transform="translate(700, 100)">
-      <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">
-        Top Languages Used
-      </text>
-      <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">
-        ${languagesText}
-      </text>
-    </g>
-
-    <!-- Footer: Last Update Timestamp -->
-    <g transform="translate(20, 280)">
-      <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">
-        Updated last at: ${lastUpdate}
-      </text>
-    </g>
-  </svg>
-    `;
-
-    fs.writeFileSync("stats_board.svg", svgContent);
-    console.log("SVG file created successfully.");
+    fs.writeFileSync(config.outputPath, svgContent);
+    console.log(`SVG file written to ${config.outputPath}.`);
   } catch (error) {
     console.error("Error generating SVG:", error);
-    // Even if there's an error, still write a fallback SVG with a different timestamp
-    const lastUpdate = new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) + " EST";
-    const fallbackSVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
-      <style>
-        .error { font: bold 20px sans-serif; fill: #FF4500; }
-        .footer { font: 10px sans-serif; fill: #AAAAAA; }
-      </style>
-      <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
-      <text class="error" x="50%" y="50%" text-anchor="middle">Error fetching data</text>
-      <text class="footer" x="20" y="280">Updated last at: ${lastUpdate}</text>
-    </svg>`;
-    fs.writeFileSync("stats_board.svg", fallbackSVG);
+    fs.writeFileSync(config.outputPath, buildFallbackSvg(error));
+    process.exitCode = 1;
   }
 }
 
-// Helper function to check if two dates are consecutive
-function isNextDay(previousDate, currentDate) {
-  const prev = new Date(previousDate);
-  const curr = new Date(currentDate);
-
-  // Normalize both dates to UTC midnight
-  const prevUTC = Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate());
-  const currUTC = Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate());
-
-  const diffDays = (currUTC - prevUTC) / (1000 * 60 * 60 * 24);
-  return diffDays === 1;
+if (require.main === module) {
+  generateSVG();
 }
 
-// Main function
-generateSVG().catch((error) => console.error("Error generating SVG:", error));
+module.exports = {
+  addDays,
+  buildSvg,
+  calculateStreaksAndTotals,
+  calculateTopLanguages,
+  escapeXml,
+  formatDateRange,
+  isWeekend,
+};
