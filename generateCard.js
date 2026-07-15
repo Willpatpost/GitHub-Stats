@@ -409,8 +409,12 @@ function buildFallbackSvg(error) {
 
 function formatTimestamp(date) {
   const value = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "short",
-    timeStyle: "medium",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
     timeZone: config.timeZone,
     timeZoneName: "short",
   }).format(date);
@@ -458,5 +462,6 @@ module.exports = {
   calculateTopLanguages,
   escapeXml,
   formatDateRange,
+  formatTimestamp,
   isWeekend,
 };

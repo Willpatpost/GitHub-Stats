@@ -6,6 +6,7 @@ const {
   calculateTopLanguages,
   escapeXml,
   formatDateRange,
+  formatTimestamp,
 } = require("./generateCard");
 
 test("weekends bridge contribution streaks without starting streaks by themselves", () => {
@@ -46,4 +47,8 @@ test("top languages falls back when every language crosses the exclusion thresho
 test("generated text helpers are safe and deterministic", () => {
   assert.equal(escapeXml("A&B <C> \"D\""), "A&amp;B &lt;C&gt; &quot;D&quot;");
   assert.equal(formatDateRange("2026-07-10", "2026-07-13"), "Jul 10, 2026 - Jul 13, 2026");
+});
+
+test("timestamp includes the configured time zone on Node 20", () => {
+  assert.equal(formatTimestamp(new Date("2026-07-14T16:05:06.000Z")), "7/14/2026, 12:05:06 PM ET");
 });
