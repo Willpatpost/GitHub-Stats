@@ -10,12 +10,12 @@ An automatically generated SVG stat board for my GitHub profile.
 - Current contribution streak, with weekends treated as neutral days
 - Longest contribution streak
 - Top repository languages by byte count
-- Compact generated timestamp in Eastern Time
+- Last statistics change timestamp in Eastern Time
 - Automatic light and dark themes with a golden-yellow accent
 
 ## Automation
 
-`.github/workflows/update-stats.yml` runs every 5 minutes and on manual dispatch. The workflow regenerates `stats_board.svg`, commits it when the SVG changes, and pushes the update back to `main`.
+`.github/workflows/update-stats.yml` runs on pushes to `main`, on manual dispatch, and approximately every 5 minutes through GitHub's best-effort scheduler. The workflow compares generated statistics with the existing `stats_board.svg` while ignoring the timestamp. It commits only when statistics or card output change, so unchanged runs preserve the previous SVG and timestamp. SVG-only bot updates are ignored by the push trigger to avoid update loops.
 
 ## Local Commands
 

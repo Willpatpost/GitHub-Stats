@@ -1,5 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const {
   buildSvg,
@@ -10,6 +13,7 @@ const {
   formatDateRange,
   formatTimestamp,
   mergeContributionDays,
+  writeSvgIfChanged,
 } = require("./generateCard");
 
 test("weekends bridge contribution streaks without starting streaks by themselves", () => {
@@ -95,4 +99,30 @@ test("card renders adaptive golden styling without duplicating GitHub's activity
   assert.doesNotMatch(svg, /activity-cell/);
   assert.doesNotMatch(svg, /stroke-dasharray/);
   assert.doesNotMatch(svg, /@keyframes reveal[^}]*transform/);
+});
+
+test("unchanged statistics preserve the existing SVG timestamp", (context) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "github-stats-"));
+  const outputPath = path.join(directory, "stats.svg");
+  context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  const cardData = {
+    totalContributions: "1,870",
+    contributionStartDate: "Oct 4, 2023",
+    currentStreak: 4,
+    currentStreakDates: { start: "2026-07-10", end: "2026-07-14" },
+    longestStreak: 22,
+    longestStreakDates: { start: "2024-11-27", end: "2024-12-18" },
+    topLanguages: [{ lang: "JavaScript", percent: 57.03 }],
+  };
+  const originalSvg = buildSvg({ ...cardData, lastUpdate: "Jul 14, 2026, 12:05 PM ET" });
+  const refreshedSvg = buildSvg({ ...cardData, lastUpdate: "Jul 14, 2026, 12:10 PM ET" });
+
+  assert.equal(writeSvgIfChanged(outputPath, originalSvg), true);
+  assert.equal(writeSvgIfChanged(outputPath, refreshedSvg), false);
+  assert.equal(fs.readFileSync(outputPath, "utf8"), originalSvg);
+
+  const changedSvg = buildSvg({ ...cardData, totalContributions: "1,871", lastUpdate: "Jul 14, 2026, 12:15 PM ET" });
+  assert.equal(writeSvgIfChanged(outputPath, changedSvg), true);
+  assert.equal(fs.readFileSync(outputPath, "utf8"), changedSvg);
 });

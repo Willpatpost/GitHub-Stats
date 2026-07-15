@@ -470,6 +470,25 @@ function formatTimestamp(date) {
   return value.replace(" EDT", " ET").replace(" EST", " ET");
 }
 
+function normalizeSvgForComparison(svg) {
+  return svg.replace(
+    /(<text class="updated"[^>]*>Updated )[^<]+(<\/text>)/,
+    "$1[TIMESTAMP]$2",
+  );
+}
+
+function writeSvgIfChanged(outputPath, svgContent) {
+  if (fs.existsSync(outputPath)) {
+    const existingSvg = fs.readFileSync(outputPath, "utf8");
+    if (normalizeSvgForComparison(existingSvg) === normalizeSvgForComparison(svgContent)) {
+      return false;
+    }
+  }
+
+  fs.writeFileSync(outputPath, svgContent);
+  return true;
+}
+
 async function generateSVG() {
   try {
     const userCreationDate = await fetchUserCreationDate();
@@ -489,8 +508,11 @@ async function generateSVG() {
       lastUpdate: formatTimestamp(now),
     });
 
-    fs.writeFileSync(config.outputPath, svgContent);
-    console.log(`SVG file written to ${config.outputPath}.`);
+    if (writeSvgIfChanged(config.outputPath, svgContent)) {
+      console.log(`Stats changed; SVG file written to ${config.outputPath}.`);
+    } else {
+      console.log("Stats unchanged; preserving the existing SVG and timestamp.");
+    }
   } catch (error) {
     console.error("Error generating SVG:", error);
     fs.writeFileSync(config.outputPath, buildFallbackSvg(error));
@@ -513,4 +535,6 @@ module.exports = {
   formatTimestamp,
   isWeekend,
   mergeContributionDays,
+  normalizeSvgForComparison,
+  writeSvgIfChanged,
 };

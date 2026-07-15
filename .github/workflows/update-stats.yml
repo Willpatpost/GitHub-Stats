@@ -2,13 +2,18 @@
 name: Update GitHub Stats
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - stats_board.svg
   schedule:
-    - cron: '*/5 * * * *'  # Runs every 5 minutes
-  workflow_dispatch:        # Allows for manual triggering
+    - cron: '*/5 * * * *'  # GitHub schedules this approximately every 5 minutes
+  workflow_dispatch:        # Allows manual triggering
 
 concurrency:
   group: update-github-stats
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write           # Grants write permissions to the repository
