@@ -40,12 +40,12 @@
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">Willpatpost</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
-  <text class="updated" x="776" y="34" text-anchor="end">Updated Jul 14, 2026, 8:53 PM ET</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated Jul 14, 2026, 11:49 PM ET</text>
   <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
   <g class="animate" style="animation-delay: 20ms">
     <text class="metric-label" x="24" y="85">Total contributions</text>
-    <text class="metric-value" x="24" y="120">1,876</text>
+    <text class="metric-value" x="24" y="120">1,725</text>
     <text class="metric-note" x="24" y="141">Since Oct 3, 2023</text>
   </g>
   <g class="animate" style="animation-delay: 55ms">
@@ -65,21 +65,21 @@
     <g class="animate" style="animation-delay: 120ms">
       <circle cx="28" cy="198" r="4" fill="#f1e05a" />
       <text class="language-name" x="38" y="202">JavaScript</text>
-      <text class="language-percent" x="188" y="202" text-anchor="end">57.2%</text>
+      <text class="language-percent" x="188" y="202" text-anchor="end">57.9%</text>
       <rect class="language-track" x="24" y="212" width="164" height="7" rx="3.5" />
-      <rect x="24" y="212" width="94" height="7" rx="3.5" fill="#f1e05a" />
+      <rect x="24" y="212" width="95" height="7" rx="3.5" fill="#f1e05a" />
     </g>
     <g class="animate" style="animation-delay: 155ms">
       <circle cx="216" cy="198" r="4" fill="#3572A5" />
       <text class="language-name" x="226" y="202">Python</text>
-      <text class="language-percent" x="376" y="202" text-anchor="end">20.0%</text>
+      <text class="language-percent" x="376" y="202" text-anchor="end">19.5%</text>
       <rect class="language-track" x="212" y="212" width="164" height="7" rx="3.5" />
-      <rect x="212" y="212" width="33" height="7" rx="3.5" fill="#3572A5" />
+      <rect x="212" y="212" width="32" height="7" rx="3.5" fill="#3572A5" />
     </g>
     <g class="animate" style="animation-delay: 190ms">
       <circle cx="404" cy="198" r="4" fill="#e34c26" />
       <text class="language-name" x="414" y="202">HTML</text>
-      <text class="language-percent" x="564" y="202" text-anchor="end">13.5%</text>
+      <text class="language-percent" x="564" y="202" text-anchor="end">13.4%</text>
       <rect class="language-track" x="400" y="212" width="164" height="7" rx="3.5" />
       <rect x="400" y="212" width="22" height="7" rx="3.5" fill="#e34c26" />
     </g>
