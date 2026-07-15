@@ -2,6 +2,25 @@ const fs = require("fs");
 
 const GRAPHQL_API = "https://api.github.com/graphql";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const LANGUAGE_COLORS = {
+  C: "#555555",
+  "C#": "#178600",
+  "C++": "#f34b7d",
+  CSS: "#663399",
+  Go: "#00ADD8",
+  HTML: "#e34c26",
+  Java: "#b07219",
+  JavaScript: "#f1e05a",
+  Kotlin: "#A97BFF",
+  PHP: "#4F5D95",
+  Python: "#3572A5",
+  Ruby: "#701516",
+  Rust: "#dea584",
+  Shell: "#89e051",
+  Swift: "#F05138",
+  TypeScript: "#3178c6",
+};
+const FALLBACK_LANGUAGE_COLORS = ["#58a6ff", "#d2a8ff", "#f778ba", "#ffa657", "#7ee787"];
 
 const config = {
   username: process.env.GITHUB_USERNAME || "Willpatpost",
@@ -292,6 +311,22 @@ function formatDateRange(start, end) {
   return `${formatDate(new Date(`${start}T00:00:00.000Z`), "UTC")} - ${formatDate(new Date(`${end}T00:00:00.000Z`), "UTC")}`;
 }
 
+function formatCompactDateRange(start, end) {
+  if (!start || !end) return "N/A";
+
+  const startDate = new Date(`${start}T00:00:00.000Z`);
+  const endDate = new Date(`${end}T00:00:00.000Z`);
+  const startYear = startDate.getUTCFullYear();
+  const endYear = endDate.getUTCFullYear();
+  const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+  if (startYear === endYear) {
+    return `${shortDate.format(startDate)} - ${shortDate.format(endDate)}, ${endYear}`;
+  }
+
+  return formatDateRange(start, end);
+}
+
 function escapeXml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -301,91 +336,143 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
+function contributionLevel(count) {
+  if (count <= 0) return 0;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 9) return 3;
+  return 4;
+}
+
+function buildContributionGrid(allContributionDays, today = new Date(), weekCount = 40) {
+  const contributionsByDate = new Map();
+  for (const { date, contributionCount } of allContributionDays) {
+    contributionsByDate.set(date, (contributionsByDate.get(date) || 0) + contributionCount);
+  }
+
+  const todayDate = toDateString(today);
+  const dayOfWeek = new Date(`${todayDate}T00:00:00.000Z`).getUTCDay();
+  const currentWeekStart = addDays(todayDate, -dayOfWeek);
+  const gridStart = addDays(currentWeekStart, -(weekCount - 1) * 7);
+  const cells = [];
+
+  for (let week = 0; week < weekCount; week += 1) {
+    for (let day = 0; day < 7; day += 1) {
+      const date = addDays(gridStart, week * 7 + day);
+      if (date > todayDate) continue;
+
+      const count = contributionsByDate.get(date) || 0;
+      const label = `${date}: ${count} contribution${count === 1 ? "" : "s"}`;
+      cells.push(
+        `<rect class="activity-cell level-${contributionLevel(count)}" x="${week * 9}" y="${day * 9}" width="7" height="7" rx="1"><title>${label}</title></rect>`,
+      );
+    }
+  }
+
+  return cells.join("");
+}
+
+function languageColor(language, index) {
+  return LANGUAGE_COLORS[language] || FALLBACK_LANGUAGE_COLORS[index % FALLBACK_LANGUAGE_COLORS.length];
+}
+
 function buildSvg({
   totalContributions,
-  commitDateRange,
+  contributionStartDate,
   currentStreak,
   currentStreakDates,
   longestStreak,
   longestStreakDates,
   topLanguages,
+  contributionDays = [],
+  now = new Date(),
   lastUpdate,
 }) {
-  const languagesText = topLanguages.length
+  const languageRows = topLanguages.length
     ? topLanguages
-        .map(({ lang, percent }) => `<tspan x="0" dy="2.0em">${escapeXml(lang)}: ${percent.toFixed(2)}%</tspan>`)
+        .slice(0, 4)
+        .map(({ lang, percent }, index) => {
+          const y = 195 + index * 21;
+          const barWidth = Math.max(3, Math.round((percent / 100) * 174));
+          return `
+    <g class="animate" style="animation-delay: ${120 + index * 35}ms">
+      <text class="language-name" x="492" y="${y}">${escapeXml(lang)}</text>
+      <rect class="language-track" x="572" y="${y - 8}" width="174" height="7" rx="3.5" />
+      <rect x="572" y="${y - 8}" width="${barWidth}" height="7" rx="3.5" fill="${languageColor(lang, index)}" />
+      <text class="language-percent" x="776" y="${y}" text-anchor="end">${percent.toFixed(1)}%</text>
+    </g>`;
+        })
         .join("")
-    : '<tspan x="0" dy="2.0em">No language data</tspan>';
+    : '<text class="empty-state" x="492" y="211">No language data available</text>';
+  const contributionGrid = buildContributionGrid(contributionDays, now);
+  const currentStreakNote = currentStreak > 0 ? formatCompactDateRange(currentStreakDates.start, currentStreakDates.end) : "No active streak";
+  const longestStreakNote = formatCompactDateRange(longestStreakDates.start, longestStreakDates.end);
+  const currentStreakUnit = currentStreak === 1 ? "day" : "days";
+  const longestStreakUnit = longestStreak === 1 ? "day" : "days";
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px" role="img" aria-labelledby="title desc">
   <title id="title">${escapeXml(config.username)} GitHub stats board</title>
-  <desc id="desc">GitHub contribution, streak, and language statistics generated automatically.</desc>
+  <desc id="desc">GitHub contribution totals, streaks, recent activity, and top languages for ${escapeXml(config.username)}.</desc>
   <style>
-    @keyframes fadein {
-      0% { opacity: 0; }
-      100% { opacity: 1; }
+    @keyframes reveal {
+      from { opacity: 0.2; }
+      to { opacity: 1; }
     }
-
-    @keyframes currstreak {
-      0% { font-size: 3px; opacity: 0.2; }
-      80% { font-size: 34px; opacity: 1; }
-      100% { font-size: 28px; opacity: 1; }
+    .animate { animation: reveal 320ms ease-out both; }
+    .username { font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
+    .subtitle, .updated { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .section-label, .metric-label { font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .metric-label, .section-label { text-transform: uppercase; }
+    .metric-value { font: 600 31px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
+    .metric-note { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .language-name { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c9d1d9; }
+    .language-percent { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .language-track { fill: #21262d; }
+    .empty-state { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .rule { stroke: #21262d; stroke-width: 1; }
+    .accent { fill: #3fb950; }
+    .activity-cell { stroke: rgba(240, 246, 252, 0.06); stroke-width: 1; }
+    .level-0 { fill: #161b22; }
+    .level-1 { fill: #0e4429; }
+    .level-2 { fill: #006d32; }
+    .level-3 { fill: #26a641; }
+    .level-4 { fill: #39d353; }
+    @media (prefers-reduced-motion: reduce) {
+      .animate { animation: none; }
     }
-
-    .title { font: bold 16px sans-serif; fill: #FFD700; }
-    .stat { font: bold 28px sans-serif; fill: #FFFFFF; }
-    .label { font: 14px sans-serif; fill: #AAAAAA; }
-    .divider { stroke: #555555; stroke-width: 2; stroke-dasharray: 4; }
-    .date { font: 12px sans-serif; fill: #AAAAAA; }
-    .footer { font: 10px sans-serif; fill: #AAAAAA; }
   </style>
 
-  <rect width="100%" height="100%" fill="#1E1E1E" rx="15" />
-  <line x1="200" y1="25" x2="200" y2="275" class="divider" />
-  <line x1="400" y1="25" x2="400" y2="275" class="divider" />
-  <line x1="600" y1="25" x2="600" y2="275" class="divider" />
+  <rect x="0.5" y="0.5" width="799" height="299" fill="#0d1117" stroke="#30363d" rx="8" />
+  <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
+  <text class="username" x="38" y="31">${escapeXml(config.username)}</text>
+  <text class="subtitle" x="38" y="46">GitHub activity overview</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated ${escapeXml(lastUpdate)}</text>
+  <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
-  <g transform="translate(100, 100)">
-    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">${escapeXml(totalContributions)}</text>
-    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.7s">Total Contributions</text>
-    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.8s">${escapeXml(commitDateRange)}</text>
+  <g class="animate" style="animation-delay: 20ms">
+    <text class="metric-label" x="24" y="85">Total contributions</text>
+    <text class="metric-value" x="24" y="120">${escapeXml(totalContributions)}</text>
+    <text class="metric-note" x="24" y="141">Since ${escapeXml(contributionStartDate)}</text>
+  </g>
+  <g class="animate" style="animation-delay: 55ms">
+    <text class="metric-label" x="286" y="85">Current streak</text>
+    <text class="metric-value" x="286" y="120">${escapeXml(currentStreak)} <tspan font-size="15" fill="#8b949e">${currentStreakUnit}</tspan></text>
+    <text class="metric-note" x="286" y="141">${escapeXml(currentStreakNote)}</text>
+  </g>
+  <g class="animate" style="animation-delay: 90ms">
+    <text class="metric-label" x="548" y="85">Longest streak</text>
+    <text class="metric-value" x="548" y="120">${escapeXml(longestStreak)} <tspan font-size="15" fill="#8b949e">${longestStreakUnit}</tspan></text>
+    <text class="metric-note" x="548" y="141">${escapeXml(longestStreakNote)}</text>
   </g>
 
-  <g style="isolation: isolate" transform="translate(300, 100)">
-    <g mask="url(#ringMask)">
-      <circle cx="0" cy="0" r="40" fill="none" stroke="#FFD700" stroke-width="5" style="opacity: 0; animation: fadein 0.5s linear forwards 0.4s"></circle>
-    </g>
-    <defs>
-      <mask id="ringMask">
-        <rect x="-50" y="-40" width="100" height="100" fill="white" />
-        <circle cx="0" cy="0" r="40" fill="black" />
-        <ellipse cx="0" cy="-40" rx="20" ry="15" fill="black" />
-      </mask>
-    </defs>
-    <text class="stat" y="10" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI, Ubuntu, sans-serif" font-weight="700" font-size="28px" font-style="normal" style="opacity: 0; animation: currstreak 0.6s linear forwards 0s">${escapeXml(currentStreak)}</text>
-    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 0.9s">Current Streak</text>
-    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.0s">${escapeXml(currentStreakDates)}</text>
-    <g transform="translate(0, -60)" stroke-opacity="0" style="opacity: 0; animation: fadein 0.5s linear forwards 0.6s">
-      <path d="M -12 -0.5 L 15 -0.5 L 15 23.5 L -12 23.5 L -12 -0.5 Z" fill="none"/>
-      <path d="M 1.5 0.67 C 1.5 0.67 2.24 3.32 2.24 5.47 C 2.24 7.53 0.89 9.2 -1.17 9.2 C -3.23 9.2 -4.79 7.53 -4.79 5.47 L -4.76 5.11 C -6.78 7.51 -8 10.62 -8 13.99 C -8 18.41 -4.42 22 0 22 C 4.42 22 8 18.41 8 13.99 C 8 8.6 5.41 3.79 1.5 0.67 Z M -0.29 19 C -2.07 19 -3.51 17.6 -3.51 15.86 C -3.51 14.24 -2.46 13.1 -0.7 12.74 C 1.07 12.38 2.9 11.53 3.92 10.16 C 4.31 11.45 4.51 12.81 4.51 14.2 C 4.51 16.85 2.36 19 -0.29 19 Z" fill="#FF4500" stroke-opacity="0"/>
-    </g>
+  <line class="rule" x1="24" y1="158" x2="776" y2="158" />
+  <text class="section-label" x="24" y="181">Contribution activity - last 40 weeks</text>
+  <text class="section-label" x="492" y="181">Top languages</text>
+  <g class="animate" transform="translate(24 193)" style="animation-delay: 120ms">
+    ${contributionGrid}
   </g>
-
-  <g transform="translate(500, 100)">
-    <text class="stat" y="15" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.2s">${escapeXml(longestStreak)}</text>
-    <text class="label" y="75" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.3s">Longest Streak</text>
-    <text class="date" y="100" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">${escapeXml(longestStreakDates)}</text>
-  </g>
-
-  <g transform="translate(700, 100)">
-    <text class="title" x="0" y="-10" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.4s">Top Languages Used</text>
-    <text class="label" text-anchor="middle" style="opacity: 0; animation: fadein 0.5s linear forwards 1.5s">${languagesText}</text>
-  </g>
-
-  <g transform="translate(20, 280)">
-    <text class="footer" x="0" y="10" text-anchor="start" style="opacity: 0; animation: fadein 0.5s linear forwards 1.6s">Updated last at: ${escapeXml(lastUpdate)}</text>
-  </g>
+  ${languageRows}
 </svg>
 `;
 }
@@ -395,14 +482,15 @@ function buildFallbackSvg(error) {
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-label="GitHub stats board error">
   <style>
-    .error { font: bold 20px sans-serif; fill: #FF4500; }
-    .hint { font: 13px sans-serif; fill: #AAAAAA; }
-    .footer { font: 10px sans-serif; fill: #AAAAAA; }
+    .error { font: 600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
+    .hint { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .footer { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
   </style>
-  <rect width="100%" height="100%" fill="#1E1E1E" rx="15"/>
-  <text class="error" x="50%" y="45%" text-anchor="middle">Error fetching GitHub stats</text>
-  <text class="hint" x="50%" y="55%" text-anchor="middle">${escapeXml(error.message)}</text>
-  <text class="footer" x="20" y="280">Updated last at: ${escapeXml(lastUpdate)}</text>
+  <rect x="0.5" y="0.5" width="799" height="299" fill="#0d1117" stroke="#30363d" rx="8"/>
+  <rect x="24" y="22" width="4" height="24" rx="2" fill="#f85149" />
+  <text class="error" x="38" y="38">Stats temporarily unavailable</text>
+  <text class="hint" x="24" y="145">${escapeXml(error.message)}</text>
+  <text class="footer" x="24" y="278">Last attempted ${escapeXml(lastUpdate)}</text>
 </svg>
 `;
 }
@@ -410,11 +498,10 @@ function buildFallbackSvg(error) {
 function formatTimestamp(date) {
   const value = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
-    month: "numeric",
+    month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    second: "2-digit",
     timeZone: config.timeZone,
     timeZoneName: "short",
   }).format(date);
@@ -430,15 +517,16 @@ async function generateSVG() {
     const streaks = calculateStreaksAndTotals(allContributionDays, now);
 
     const firstActivityDate = repositoryInsights.earliestCommitDate || userCreationDate;
-    const latestActivityDate = repositoryInsights.mostRecentCommitDate || now;
     const svgContent = buildSvg({
       totalContributions: totalContributionsSum.toLocaleString("en-US"),
-      commitDateRange: `${formatDate(firstActivityDate)} - ${formatDate(latestActivityDate)}`,
+      contributionStartDate: formatDate(firstActivityDate),
       currentStreak: streaks.currentStreak,
-      currentStreakDates: formatDateRange(streaks.currentStreakStart, streaks.currentStreakEnd),
+      currentStreakDates: { start: streaks.currentStreakStart, end: streaks.currentStreakEnd },
       longestStreak: streaks.longestStreak,
-      longestStreakDates: formatDateRange(streaks.longestStreakStart, streaks.longestStreakEnd),
+      longestStreakDates: { start: streaks.longestStreakStart, end: streaks.longestStreakEnd },
       topLanguages: repositoryInsights.topLanguages,
+      contributionDays: allContributionDays,
+      now,
       lastUpdate: formatTimestamp(now),
     });
 
@@ -457,10 +545,12 @@ if (require.main === module) {
 
 module.exports = {
   addDays,
+  buildContributionGrid,
   buildSvg,
   calculateStreaksAndTotals,
   calculateTopLanguages,
   escapeXml,
+  formatCompactDateRange,
   formatDateRange,
   formatTimestamp,
   isWeekend,
