@@ -1,6 +1,6 @@
 # GitHub Stats Board
 
-An automatically generated SVG stat board for William Poston's GitHub profile.
+An automatically generated SVG stat board for my GitHub profile.
 
 ![GitHub Stats](./stats_board.svg)
 
