@@ -2,7 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
-  buildContributionGrid,
   buildSvg,
   calculateStreaksAndTotals,
   calculateTopLanguages,
@@ -10,6 +9,7 @@ const {
   formatCompactDateRange,
   formatDateRange,
   formatTimestamp,
+  mergeContributionDays,
 } = require("./generateCard");
 
 test("weekends bridge contribution streaks without starting streaks by themselves", () => {
@@ -57,21 +57,22 @@ test("timestamp includes the configured time zone on Node 20", () => {
   assert.equal(formatTimestamp(new Date("2026-07-14T16:05:06.000Z")), "Jul 14, 2026, 12:05 PM ET");
 });
 
-test("contribution grid renders forty aligned weeks with intensity levels", () => {
-  const grid = buildContributionGrid(
-    [
-      { date: "2026-07-10", contributionCount: 1 },
-      { date: "2026-07-11", contributionCount: 11 },
-    ],
-    new Date("2026-07-11T12:00:00.000Z"),
-  );
+test("overlapping contribution windows keep one value per calendar day", () => {
+  const result = mergeContributionDays([
+    { date: "2023-10-04", contributionCount: 3 },
+    { date: "2024-10-04", contributionCount: 4 },
+    { date: "2024-10-04", contributionCount: 4 },
+    { date: "2025-01-10", contributionCount: 1 },
+  ]);
 
-  assert.equal((grid.match(/<rect/g) || []).length, 280);
-  assert.match(grid, /class="activity-cell level-1"[^>]*><title>2026-07-10: 1 contribution<\/title>/);
-  assert.match(grid, /class="activity-cell level-4"[^>]*><title>2026-07-11: 11 contributions<\/title>/);
+  assert.deepEqual(result, [
+    { date: "2023-10-04", contributionCount: 3 },
+    { date: "2024-10-04", contributionCount: 4 },
+    { date: "2025-01-10", contributionCount: 1 },
+  ]);
 });
 
-test("card renders visual hierarchy, language bars, and accessible motion", () => {
+test("card renders adaptive golden styling without duplicating GitHub's activity chart", () => {
   const svg = buildSvg({
     totalContributions: "1,870",
     contributionStartDate: "Oct 4, 2023",
@@ -80,15 +81,18 @@ test("card renders visual hierarchy, language bars, and accessible motion", () =
     longestStreak: 22,
     longestStreakDates: { start: "2024-11-27", end: "2024-12-18" },
     topLanguages: [{ lang: "JavaScript", percent: 57.03 }],
-    contributionDays: [{ date: "2026-07-14", contributionCount: 4 }],
-    now: new Date("2026-07-14T16:05:06.000Z"),
     lastUpdate: "Jul 14, 2026, 12:05 PM ET",
   });
 
-  assert.match(svg, /Contribution activity - last 40 weeks/);
+  assert.match(svg, /Since Oct 4, 2023/);
   assert.match(svg, /fill="#f1e05a"/);
+  assert.match(svg, /fill: #7d4e00/);
+  assert.match(svg, /fill: #f0c74e/);
+  assert.match(svg, /@media \(prefers-color-scheme: dark\)/);
   assert.match(svg, /No active streak/);
   assert.match(svg, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(svg, /Contribution activity/);
+  assert.doesNotMatch(svg, /activity-cell/);
   assert.doesNotMatch(svg, /stroke-dasharray/);
   assert.doesNotMatch(svg, /@keyframes reveal[^}]*transform/);
 });

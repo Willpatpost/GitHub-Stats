@@ -9,9 +9,9 @@ An automatically generated SVG stat board for my GitHub profile.
 - Total contributions across the account history
 - Current contribution streak, with weekends treated as neutral days
 - Longest contribution streak
-- Contribution activity across the most recent 40 weeks
 - Top repository languages by byte count
 - Compact generated timestamp in Eastern Time
+- Automatic light and dark themes with a golden-yellow accent
 
 ## Automation
 

@@ -1,7 +1,6 @@
 const fs = require("fs");
 
 const GRAPHQL_API = "https://api.github.com/graphql";
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const LANGUAGE_COLORS = {
   C: "#555555",
   "C#": "#178600",
@@ -102,7 +101,6 @@ async function fetchContributionsForPeriod(fromDate, toDate) {
 async function fetchAllContributions(userCreationDate, now) {
   let currentStart = new Date(userCreationDate);
   const allContributionDays = [];
-  let totalContributionsSum = 0;
 
   console.log(`Fetching contributions for ${config.username}`);
 
@@ -113,7 +111,7 @@ async function fetchAllContributions(userCreationDate, now) {
 
     console.log(`Contribution window: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
     const contributions = await fetchContributionsForPeriod(currentStart, currentEnd);
-    totalContributionsSum += contributions.totalContributions;
+    console.log(`Period contributions: ${contributions.totalContributions.toLocaleString("en-US")}`);
 
     for (const week of contributions.weeks) {
       for (const day of week.contributionDays) {
@@ -124,7 +122,20 @@ async function fetchAllContributions(userCreationDate, now) {
     currentStart = currentEnd;
   }
 
-  return { allContributionDays, totalContributionsSum };
+  const uniqueContributionDays = mergeContributionDays(allContributionDays);
+  const totalContributionsSum = uniqueContributionDays.reduce((sum, day) => sum + day.contributionCount, 0);
+  return { allContributionDays: uniqueContributionDays, totalContributionsSum };
+}
+
+function mergeContributionDays(contributionDays) {
+  const contributionsByDate = new Map();
+  for (const { date, contributionCount } of contributionDays) {
+    contributionsByDate.set(date, Math.max(contributionsByDate.get(date) || 0, contributionCount));
+  }
+
+  return [...contributionsByDate.entries()]
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .map(([date, contributionCount]) => ({ date, contributionCount }));
 }
 
 async function fetchRepositoryInsights() {
@@ -144,13 +155,6 @@ async function fetchRepositoryInsights() {
             endCursor
           }
           nodes {
-            defaultBranchRef {
-              target {
-                ... on Commit {
-                  committedDate
-                }
-              }
-            }
             languages(first: 20, orderBy: { field: SIZE, direction: DESC }) {
               edges {
                 size
@@ -166,8 +170,6 @@ async function fetchRepositoryInsights() {
   `;
 
   const languages = {};
-  let earliestCommitDate = null;
-  let mostRecentCommitDate = null;
   let hasNextPage = true;
   let endCursor = null;
 
@@ -176,13 +178,6 @@ async function fetchRepositoryInsights() {
     const repositories = data.user.repositories;
 
     for (const repo of repositories.nodes) {
-      const committedDate = repo.defaultBranchRef?.target?.committedDate;
-      if (committedDate) {
-        const date = new Date(committedDate);
-        if (!earliestCommitDate || date < earliestCommitDate) earliestCommitDate = date;
-        if (!mostRecentCommitDate || date > mostRecentCommitDate) mostRecentCommitDate = date;
-      }
-
       for (const edge of repo.languages.edges) {
         const name = edge.node.name;
         languages[name] = (languages[name] || 0) + edge.size;
@@ -194,8 +189,6 @@ async function fetchRepositoryInsights() {
   }
 
   return {
-    earliestCommitDate,
-    mostRecentCommitDate,
     topLanguages: calculateTopLanguages(languages),
   };
 }
@@ -336,42 +329,6 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function contributionLevel(count) {
-  if (count <= 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
-}
-
-function buildContributionGrid(allContributionDays, today = new Date(), weekCount = 40) {
-  const contributionsByDate = new Map();
-  for (const { date, contributionCount } of allContributionDays) {
-    contributionsByDate.set(date, (contributionsByDate.get(date) || 0) + contributionCount);
-  }
-
-  const todayDate = toDateString(today);
-  const dayOfWeek = new Date(`${todayDate}T00:00:00.000Z`).getUTCDay();
-  const currentWeekStart = addDays(todayDate, -dayOfWeek);
-  const gridStart = addDays(currentWeekStart, -(weekCount - 1) * 7);
-  const cells = [];
-
-  for (let week = 0; week < weekCount; week += 1) {
-    for (let day = 0; day < 7; day += 1) {
-      const date = addDays(gridStart, week * 7 + day);
-      if (date > todayDate) continue;
-
-      const count = contributionsByDate.get(date) || 0;
-      const label = `${date}: ${count} contribution${count === 1 ? "" : "s"}`;
-      cells.push(
-        `<rect class="activity-cell level-${contributionLevel(count)}" x="${week * 9}" y="${day * 9}" width="7" height="7" rx="1"><title>${label}</title></rect>`,
-      );
-    }
-  }
-
-  return cells.join("");
-}
-
 function languageColor(language, index) {
   return LANGUAGE_COLORS[language] || FALLBACK_LANGUAGE_COLORS[index % FALLBACK_LANGUAGE_COLORS.length];
 }
@@ -384,66 +341,69 @@ function buildSvg({
   longestStreak,
   longestStreakDates,
   topLanguages,
-  contributionDays = [],
-  now = new Date(),
   lastUpdate,
 }) {
   const languageRows = topLanguages.length
     ? topLanguages
         .slice(0, 4)
         .map(({ lang, percent }, index) => {
-          const y = 195 + index * 21;
-          const barWidth = Math.max(3, Math.round((percent / 100) * 174));
+          const x = 24 + index * 188;
+          const barWidth = Math.max(3, Math.round((percent / 100) * 164));
           return `
     <g class="animate" style="animation-delay: ${120 + index * 35}ms">
-      <text class="language-name" x="492" y="${y}">${escapeXml(lang)}</text>
-      <rect class="language-track" x="572" y="${y - 8}" width="174" height="7" rx="3.5" />
-      <rect x="572" y="${y - 8}" width="${barWidth}" height="7" rx="3.5" fill="${languageColor(lang, index)}" />
-      <text class="language-percent" x="776" y="${y}" text-anchor="end">${percent.toFixed(1)}%</text>
+      <circle cx="${x + 4}" cy="198" r="4" fill="${languageColor(lang, index)}" />
+      <text class="language-name" x="${x + 14}" y="202">${escapeXml(lang)}</text>
+      <text class="language-percent" x="${x + 164}" y="202" text-anchor="end">${percent.toFixed(1)}%</text>
+      <rect class="language-track" x="${x}" y="212" width="164" height="7" rx="3.5" />
+      <rect x="${x}" y="212" width="${barWidth}" height="7" rx="3.5" fill="${languageColor(lang, index)}" />
     </g>`;
         })
         .join("")
-    : '<text class="empty-state" x="492" y="211">No language data available</text>';
-  const contributionGrid = buildContributionGrid(contributionDays, now);
+    : '<text class="empty-state" x="24" y="205">No language data available</text>';
   const currentStreakNote = currentStreak > 0 ? formatCompactDateRange(currentStreakDates.start, currentStreakDates.end) : "No active streak";
   const longestStreakNote = formatCompactDateRange(longestStreakDates.start, longestStreakDates.end);
   const currentStreakUnit = currentStreak === 1 ? "day" : "days";
   const longestStreakUnit = longestStreak === 1 ? "day" : "days";
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" style="isolation: isolate" viewBox="0 0 800 300" width="800px" height="300px" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" style="isolation: isolate" viewBox="0 0 800 242" width="800px" height="242px" role="img" aria-labelledby="title desc">
   <title id="title">${escapeXml(config.username)} GitHub stats board</title>
-  <desc id="desc">GitHub contribution totals, streaks, recent activity, and top languages for ${escapeXml(config.username)}.</desc>
+  <desc id="desc">GitHub contribution totals, streaks, and top languages for ${escapeXml(config.username)}.</desc>
   <style>
     @keyframes reveal {
       from { opacity: 0.2; }
       to { opacity: 1; }
     }
     .animate { animation: reveal 320ms ease-out both; }
-    .username { font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
-    .subtitle, .updated { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
-    .section-label, .metric-label { font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .background { fill: #ffffff; stroke: #d0d7de; }
+    .username { font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2328; }
+    .subtitle, .updated { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
+    .section-label, .metric-label { font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
     .metric-label, .section-label { text-transform: uppercase; }
-    .metric-value { font: 600 31px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
-    .metric-note { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
-    .language-name { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c9d1d9; }
-    .language-percent { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
-    .language-track { fill: #21262d; }
-    .empty-state { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
-    .rule { stroke: #21262d; stroke-width: 1; }
-    .accent { fill: #3fb950; }
-    .activity-cell { stroke: rgba(240, 246, 252, 0.06); stroke-width: 1; }
-    .level-0 { fill: #161b22; }
-    .level-1 { fill: #0e4429; }
-    .level-2 { fill: #006d32; }
-    .level-3 { fill: #26a641; }
-    .level-4 { fill: #39d353; }
+    .metric-value { font: 600 31px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #7d4e00; }
+    .metric-unit, .metric-note { fill: #656d76; }
+    .metric-note { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .language-name { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2328; }
+    .language-percent { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
+    .language-track { fill: #eaeef2; }
+    .empty-state { font: 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
+    .rule { stroke: #d8dee4; stroke-width: 1; }
+    .accent { fill: #bf8700; }
+    @media (prefers-color-scheme: dark) {
+      .background { fill: #0d1117; stroke: #30363d; }
+      .username, .language-name { fill: #f0f6fc; }
+      .subtitle, .updated, .section-label, .metric-label, .metric-unit, .metric-note, .language-percent, .empty-state { fill: #8b949e; }
+      .metric-value { fill: #f0c74e; }
+      .language-track { fill: #21262d; }
+      .rule { stroke: #21262d; }
+      .accent { fill: #e3b341; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .animate { animation: none; }
     }
   </style>
 
-  <rect x="0.5" y="0.5" width="799" height="299" fill="#0d1117" stroke="#30363d" rx="8" />
+  <rect class="background" x="0.5" y="0.5" width="799" height="241" rx="8" />
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">${escapeXml(config.username)}</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
@@ -457,21 +417,17 @@ function buildSvg({
   </g>
   <g class="animate" style="animation-delay: 55ms">
     <text class="metric-label" x="286" y="85">Current streak</text>
-    <text class="metric-value" x="286" y="120">${escapeXml(currentStreak)} <tspan font-size="15" fill="#8b949e">${currentStreakUnit}</tspan></text>
+    <text class="metric-value" x="286" y="120">${escapeXml(currentStreak)} <tspan class="metric-unit" font-size="15">${currentStreakUnit}</tspan></text>
     <text class="metric-note" x="286" y="141">${escapeXml(currentStreakNote)}</text>
   </g>
   <g class="animate" style="animation-delay: 90ms">
     <text class="metric-label" x="548" y="85">Longest streak</text>
-    <text class="metric-value" x="548" y="120">${escapeXml(longestStreak)} <tspan font-size="15" fill="#8b949e">${longestStreakUnit}</tspan></text>
+    <text class="metric-value" x="548" y="120">${escapeXml(longestStreak)} <tspan class="metric-unit" font-size="15">${longestStreakUnit}</tspan></text>
     <text class="metric-note" x="548" y="141">${escapeXml(longestStreakNote)}</text>
   </g>
 
   <line class="rule" x1="24" y1="158" x2="776" y2="158" />
-  <text class="section-label" x="24" y="181">Contribution activity - last 40 weeks</text>
-  <text class="section-label" x="492" y="181">Top languages</text>
-  <g class="animate" transform="translate(24 193)" style="animation-delay: 120ms">
-    ${contributionGrid}
-  </g>
+  <text class="section-label" x="24" y="181">Top languages</text>
   ${languageRows}
 </svg>
 `;
@@ -480,17 +436,23 @@ function buildSvg({
 function buildFallbackSvg(error) {
   const lastUpdate = formatTimestamp(new Date());
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-label="GitHub stats board error">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 242" role="img" aria-label="GitHub stats board error">
   <style>
-    .error { font: 600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f0f6fc; }
-    .hint { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
-    .footer { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #8b949e; }
+    .background { fill: #ffffff; stroke: #d0d7de; }
+    .error { font: 600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2328; }
+    .hint { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
+    .footer { font: 10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #656d76; }
+    @media (prefers-color-scheme: dark) {
+      .background { fill: #0d1117; stroke: #30363d; }
+      .error { fill: #f0f6fc; }
+      .hint, .footer { fill: #8b949e; }
+    }
   </style>
-  <rect x="0.5" y="0.5" width="799" height="299" fill="#0d1117" stroke="#30363d" rx="8"/>
+  <rect class="background" x="0.5" y="0.5" width="799" height="241" rx="8"/>
   <rect x="24" y="22" width="4" height="24" rx="2" fill="#f85149" />
   <text class="error" x="38" y="38">Stats temporarily unavailable</text>
   <text class="hint" x="24" y="145">${escapeXml(error.message)}</text>
-  <text class="footer" x="24" y="278">Last attempted ${escapeXml(lastUpdate)}</text>
+  <text class="footer" x="24" y="220">Last attempted ${escapeXml(lastUpdate)}</text>
 </svg>
 `;
 }
@@ -516,17 +478,14 @@ async function generateSVG() {
     const repositoryInsights = await fetchRepositoryInsights();
     const streaks = calculateStreaksAndTotals(allContributionDays, now);
 
-    const firstActivityDate = repositoryInsights.earliestCommitDate || userCreationDate;
     const svgContent = buildSvg({
       totalContributions: totalContributionsSum.toLocaleString("en-US"),
-      contributionStartDate: formatDate(firstActivityDate),
+      contributionStartDate: formatDate(userCreationDate),
       currentStreak: streaks.currentStreak,
       currentStreakDates: { start: streaks.currentStreakStart, end: streaks.currentStreakEnd },
       longestStreak: streaks.longestStreak,
       longestStreakDates: { start: streaks.longestStreakStart, end: streaks.longestStreakEnd },
       topLanguages: repositoryInsights.topLanguages,
-      contributionDays: allContributionDays,
-      now,
       lastUpdate: formatTimestamp(now),
     });
 
@@ -545,7 +504,6 @@ if (require.main === module) {
 
 module.exports = {
   addDays,
-  buildContributionGrid,
   buildSvg,
   calculateStreaksAndTotals,
   calculateTopLanguages,
@@ -554,4 +512,5 @@ module.exports = {
   formatDateRange,
   formatTimestamp,
   isWeekend,
+  mergeContributionDays,
 };
