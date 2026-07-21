@@ -40,7 +40,7 @@
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">Willpatpost</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
-  <text class="updated" x="776" y="34" text-anchor="end">Updated Jul 20, 2026, 12:18 PM ET</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated Jul 20, 2026, 8:57 PM ET</text>
   <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
   <g class="animate" style="animation-delay: 20ms">
@@ -50,8 +50,8 @@
   </g>
   <g class="animate" style="animation-delay: 55ms">
     <text class="metric-label" x="286" y="85">Current streak</text>
-    <text class="metric-value" x="286" y="120">4 <tspan class="metric-unit" font-size="15">days</tspan></text>
-    <text class="metric-note" x="286" y="141">Jul 17 - Jul 20, 2026</text>
+    <text class="metric-value" x="286" y="120">0 <tspan class="metric-unit" font-size="15">days</tspan></text>
+    <text class="metric-note" x="286" y="141">No active streak</text>
   </g>
   <g class="animate" style="animation-delay: 90ms">
     <text class="metric-label" x="548" y="85">Longest streak</text>
