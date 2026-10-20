@@ -40,18 +40,18 @@
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">Willpatpost</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
-  <text class="updated" x="776" y="34" text-anchor="end">Updated Oct 19, 2026, 6:58 PM ET</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated Oct 19, 2026, 9:30 PM ET</text>
   <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
   <g class="animate" style="animation-delay: 20ms">
     <text class="metric-label" x="24" y="85">Total contributions</text>
-    <text class="metric-value" x="24" y="120">2,292</text>
+    <text class="metric-value" x="24" y="120">2,298</text>
     <text class="metric-note" x="24" y="141">Since Oct 3, 2023</text>
   </g>
   <g class="animate" style="animation-delay: 55ms">
     <text class="metric-label" x="286" y="85">Current streak</text>
-    <text class="metric-value" x="286" y="120">20 <tspan class="metric-unit" font-size="15">days</tspan></text>
-    <text class="metric-note" x="286" y="141">Sep 30 - Oct 19, 2026</text>
+    <text class="metric-value" x="286" y="120">21 <tspan class="metric-unit" font-size="15">days</tspan></text>
+    <text class="metric-note" x="286" y="141">Sep 30 - Oct 20, 2026</text>
   </g>
   <g class="animate" style="animation-delay: 90ms">
     <text class="metric-label" x="548" y="85">Longest streak</text>
@@ -65,29 +65,29 @@
     <g class="animate" style="animation-delay: 120ms">
       <circle cx="28" cy="198" r="4" fill="#f1e05a" />
       <text class="language-name" x="38" y="202">JavaScript</text>
-      <text class="language-percent" x="188" y="202" text-anchor="end">42.4%</text>
+      <text class="language-percent" x="188" y="202" text-anchor="end">39.4%</text>
       <rect class="language-track" x="24" y="212" width="164" height="7" rx="3.5" />
-      <rect x="24" y="212" width="70" height="7" rx="3.5" fill="#f1e05a" />
+      <rect x="24" y="212" width="65" height="7" rx="3.5" fill="#f1e05a" />
     </g>
     <g class="animate" style="animation-delay: 155ms">
       <circle cx="216" cy="198" r="4" fill="#3572A5" />
       <text class="language-name" x="226" y="202">Python</text>
-      <text class="language-percent" x="376" y="202" text-anchor="end">29.3%</text>
+      <text class="language-percent" x="376" y="202" text-anchor="end">27.3%</text>
       <rect class="language-track" x="212" y="212" width="164" height="7" rx="3.5" />
-      <rect x="212" y="212" width="48" height="7" rx="3.5" fill="#3572A5" />
+      <rect x="212" y="212" width="45" height="7" rx="3.5" fill="#3572A5" />
     </g>
     <g class="animate" style="animation-delay: 190ms">
-      <circle cx="404" cy="198" r="4" fill="#e34c26" />
-      <text class="language-name" x="414" y="202">HTML</text>
-      <text class="language-percent" x="564" y="202" text-anchor="end">9.2%</text>
+      <circle cx="404" cy="198" r="4" fill="#dea584" />
+      <text class="language-name" x="414" y="202">Rust</text>
+      <text class="language-percent" x="564" y="202" text-anchor="end">13.4%</text>
       <rect class="language-track" x="400" y="212" width="164" height="7" rx="3.5" />
-      <rect x="400" y="212" width="15" height="7" rx="3.5" fill="#e34c26" />
+      <rect x="400" y="212" width="22" height="7" rx="3.5" fill="#dea584" />
     </g>
     <g class="animate" style="animation-delay: 225ms">
-      <circle cx="592" cy="198" r="4" fill="#ffa657" />
-      <text class="language-name" x="602" y="202">GDScript</text>
-      <text class="language-percent" x="752" y="202" text-anchor="end">7.8%</text>
+      <circle cx="592" cy="198" r="4" fill="#e34c26" />
+      <text class="language-name" x="602" y="202">HTML</text>
+      <text class="language-percent" x="752" y="202" text-anchor="end">8.6%</text>
       <rect class="language-track" x="588" y="212" width="164" height="7" rx="3.5" />
-      <rect x="588" y="212" width="13" height="7" rx="3.5" fill="#ffa657" />
+      <rect x="588" y="212" width="14" height="7" rx="3.5" fill="#e34c26" />
     </g>
 </svg>
