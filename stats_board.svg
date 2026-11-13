@@ -40,7 +40,7 @@
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">Willpatpost</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
-  <text class="updated" x="776" y="34" text-anchor="end">Updated Nov 12, 2026, 8:13 PM ET</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated Nov 13, 2026, 2:54 AM ET</text>
   <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
   <g class="animate" style="animation-delay: 20ms">
@@ -65,14 +65,14 @@
     <g class="animate" style="animation-delay: 120ms">
       <circle cx="28" cy="198" r="4" fill="#dea584" />
       <text class="language-name" x="38" y="202">Rust</text>
-      <text class="language-percent" x="188" y="202" text-anchor="end">39.9%</text>
+      <text class="language-percent" x="188" y="202" text-anchor="end">40.1%</text>
       <rect class="language-track" x="24" y="212" width="164" height="7" rx="3.5" />
-      <rect x="24" y="212" width="65" height="7" rx="3.5" fill="#dea584" />
+      <rect x="24" y="212" width="66" height="7" rx="3.5" fill="#dea584" />
     </g>
     <g class="animate" style="animation-delay: 155ms">
       <circle cx="216" cy="198" r="4" fill="#3178c6" />
       <text class="language-name" x="226" y="202">TypeScript</text>
-      <text class="language-percent" x="376" y="202" text-anchor="end">37.8%</text>
+      <text class="language-percent" x="376" y="202" text-anchor="end">37.6%</text>
       <rect class="language-track" x="212" y="212" width="164" height="7" rx="3.5" />
       <rect x="212" y="212" width="62" height="7" rx="3.5" fill="#3178c6" />
     </g>
