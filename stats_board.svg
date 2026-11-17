@@ -40,12 +40,12 @@
   <rect class="accent" x="24" y="22" width="4" height="24" rx="2" />
   <text class="username" x="38" y="31">Willpatpost</text>
   <text class="subtitle" x="38" y="46">GitHub activity overview</text>
-  <text class="updated" x="776" y="34" text-anchor="end">Updated Nov 15, 2026, 8:10 PM ET</text>
+  <text class="updated" x="776" y="34" text-anchor="end">Updated Nov 16, 2026, 8:03 PM ET</text>
   <line class="rule" x1="24" y1="62" x2="776" y2="62" />
 
   <g class="animate" style="animation-delay: 20ms">
     <text class="metric-label" x="24" y="85">Total contributions</text>
-    <text class="metric-value" x="24" y="120">2,731</text>
+    <text class="metric-value" x="24" y="120">2,747</text>
     <text class="metric-note" x="24" y="141">Since Oct 3, 2023</text>
   </g>
   <g class="animate" style="animation-delay: 55ms">
@@ -55,8 +55,8 @@
   </g>
   <g class="animate" style="animation-delay: 90ms">
     <text class="metric-label" x="548" y="85">Longest streak</text>
-    <text class="metric-value" x="548" y="120">47 <tspan class="metric-unit" font-size="15">days</tspan></text>
-    <text class="metric-note" x="548" y="141">Sep 30 - Nov 15, 2026</text>
+    <text class="metric-value" x="548" y="120">48 <tspan class="metric-unit" font-size="15">days</tspan></text>
+    <text class="metric-note" x="548" y="141">Sep 30 - Nov 16, 2026</text>
   </g>
 
   <line class="rule" x1="24" y1="158" x2="776" y2="158" />
@@ -65,16 +65,16 @@
     <g class="animate" style="animation-delay: 120ms">
       <circle cx="28" cy="198" r="4" fill="#dea584" />
       <text class="language-name" x="38" y="202">Rust</text>
-      <text class="language-percent" x="188" y="202" text-anchor="end">41.0%</text>
+      <text class="language-percent" x="188" y="202" text-anchor="end">41.3%</text>
       <rect class="language-track" x="24" y="212" width="164" height="7" rx="3.5" />
-      <rect x="24" y="212" width="67" height="7" rx="3.5" fill="#dea584" />
+      <rect x="24" y="212" width="68" height="7" rx="3.5" fill="#dea584" />
     </g>
     <g class="animate" style="animation-delay: 155ms">
       <circle cx="216" cy="198" r="4" fill="#3178c6" />
       <text class="language-name" x="226" y="202">TypeScript</text>
-      <text class="language-percent" x="376" y="202" text-anchor="end">37.1%</text>
+      <text class="language-percent" x="376" y="202" text-anchor="end">36.9%</text>
       <rect class="language-track" x="212" y="212" width="164" height="7" rx="3.5" />
-      <rect x="212" y="212" width="61" height="7" rx="3.5" fill="#3178c6" />
+      <rect x="212" y="212" width="60" height="7" rx="3.5" fill="#3178c6" />
     </g>
     <g class="animate" style="animation-delay: 190ms">
       <circle cx="404" cy="198" r="4" fill="#f1e05a" />
